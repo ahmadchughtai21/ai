@@ -4,7 +4,9 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'tasks', views.TaskViewSet)
+router.register(r'categories', views.CategoryViewSet)
 router.register(r'tags', views.TagViewSet)
+router.register(r'subtasks', views.SubTaskViewSet)
 
 urlpatterns = [
     path('', views.index, name='index'),

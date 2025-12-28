@@ -1,9 +1,9 @@
 import os
 from groq import Groq
 from django.conf import settings
-from .models import Task, Tag, ChatMessage
+from .models import Task, Tag, ChatMessage, Category, SubTask
 import json
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from django.utils import timezone
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -12,7 +12,7 @@ MODEL_NAME = "llama-3.1-8b-instant"
 
 
 SYSTEM_INSTRUCTION = """
-You are a Todo List Assistant. Your ONLY purpose is to help users manage their todo tasks.
+You are a TickTick-style Todo List Assistant. Your ONLY purpose is to help users manage their tasks with advanced features like categories, priorities, due dates, and subtasks.
 
 **STRICT SCOPE RESTRICTION:**
 You MUST REJECT any request that is NOT related to task management. This includes but not limited to:
@@ -36,8 +36,8 @@ If the user asks about anything NOT related to managing their todo list, respond
 {
   "commands": [
     {
-      "action": "create_task" | "update_task" | "delete_task" | "delete_all_tasks" | null,
-      "data": {task details},
+      "action": "create_task" | "update_task" | "delete_task" | "delete_all_tasks" | "create_category" | null,
+      "data": {task/category details},
       "task_identifier": "title of task to update/delete" (for update/delete only)
     }
   ],
@@ -46,24 +46,61 @@ If the user asks about anything NOT related to managing their todo list, respond
 }
 
 **COMMAND RULES:**
-- action: "create_task" - create new task
-  data: {"title": str (required), "description": str, "due_time": "HH:MM AM/PM" (12-hour format), "tags": [str]}
 
-- action: "update_task" - update existing task
-  data: {"title": str, "description": str, "status": "pending"|"completed", "due_time": "HH:MM AM/PM", "tags": [str]}
-  task_identifier: exact title of task from current list
+1. create_task - create new task
+   data: {
+     "title": str (required),
+     "description": str,
+     "category_name": str (e.g., "Work", "Personal", "Shopping" - will auto-create if doesn't exist),
+     "priority": "none" | "low" | "medium" | "high",
+     "due_date": "YYYY-MM-DD" (e.g., "2025-01-15"),
+     "due_time": "HH:MM AM/PM" (12-hour format),
+     "tags": [str],
+     "subtasks": [str] (list of subtask titles)
+   }
 
-- action: "delete_task" - delete one task
-  task_identifier: exact title of task from current list
+2. update_task - update existing task
+   data: Same fields as create_task (only include fields being changed)
+   task_identifier: exact title of task from current list
 
-- action: "delete_all_tasks" - delete all tasks
+3. delete_task - delete one task
+   task_identifier: exact title of task from current list
 
-- action: null - no database action needed (just answering task-related questions)
+4. delete_all_tasks - delete all tasks (no data needed)
+
+5. create_category - create new category/list
+   data: {
+     "name": str (required),
+     "color": str (hex color, e.g., "#3b82f6")
+   }
+
+6. action: null - no database action needed (just answering task-related questions)
+
+**SMART DATE PARSING:**
+- "today" → use today's date
+- "tomorrow" → use tomorrow's date
+- "next monday", "next week" → calculate appropriate date
+- "in 3 days" → add 3 days to today
+- Always use YYYY-MM-DD format in response
 
 **TIME FORMAT:**
 - Use 12-hour format: "8:00 PM", "9:30 AM", "5:00 PM"
 - When user says "8pm tonight" or "8pm today", use "8:00 PM"
-- When user says "tomorrow at 9am", note it in description and use "9:00 AM"
+
+**PRIORITY MAPPING:**
+- "important", "urgent", "critical" → "high"
+- "normal" → "medium"
+- "someday", "maybe" → "low"
+- Default → "none"
+
+**CATEGORY/LIST LOGIC:**
+- If user mentions a category that doesn't exist, CREATE IT automatically
+- Default category is "Inbox" (created automatically if needed)
+- Examples: "Work", "Personal", "Shopping", "University", "Budget"
+
+**SUBTASKS:**
+- When user says "with steps", "checklist", or lists items, create subtasks
+- Example: "Buy groceries with milk, bread, eggs" → create task with 3 subtasks
 
 **STATUS RULES:**
 - "mark as done", "complete it", "set to done" → status: "completed"
@@ -72,7 +109,7 @@ If the user asks about anything NOT related to managing their todo list, respond
 **IMPORTANT:**
 - user_message MUST be friendly and natural, NEVER show JSON or technical details
 - When updating, use task_identifier to match the task title from CURRENT TASKS
-- Multiple commands allowed in one response (e.g., create multiple tasks)
+- Multiple commands allowed in one response
 - Only include fields being changed in update_task data
 
 **EXAMPLES:**
@@ -85,35 +122,47 @@ Response:
   "system_note": null
 }
 
-User: "add task buy milk"
+User: "add high priority task to finish the report in Work category due tomorrow at 5pm"
 Response:
 {
-  "commands": [{"action": "create_task", "data": {"title": "buy milk"}}],
-  "user_message": "Task 'buy milk' has been added!",
+  "commands": [{
+    "action": "create_task",
+    "data": {
+      "title": "finish the report",
+      "category_name": "Work",
+      "priority": "high",
+      "due_date": "2025-12-29",
+      "due_time": "5:00 PM"
+    }
+  }],
+  "user_message": "Created high priority task 'finish the report' in Work category, due tomorrow at 5:00 PM!",
   "system_note": null
 }
 
-User: "mark drink water as done"
+User: "create shopping list for groceries with milk, bread, and eggs"
 Response:
 {
-  "commands": [{"action": "update_task", "data": {"status": "completed"}, "task_identifier": "drink water"}],
-  "user_message": "Marked 'drink water' as completed!",
+  "commands": [{
+    "action": "create_task",
+    "data": {
+      "title": "groceries",
+      "category_name": "Shopping",
+      "subtasks": ["milk", "bread", "eggs"]
+    }
+  }],
+  "user_message": "Created task 'groceries' in Shopping category with 3 items on your checklist!",
   "system_note": null
 }
 
-User: "set clean shoes due to 8pm"
+User: "mark finish report as done"
 Response:
 {
-  "commands": [{"action": "update_task", "data": {"due_time": "8:00 PM"}, "task_identifier": "clean shoes"}],
-  "user_message": "Set 'clean shoes' due time to 8:00 PM!",
-  "system_note": null
-}
-
-User: "do i have any tasks?"
-Response:
-{
-  "commands": [],
-  "user_message": "You have 3 tasks: drink water, clean shoes, decide cloths.",
+  "commands": [{
+    "action": "update_task",
+    "data": {"status": "completed"},
+    "task_identifier": "finish the report"
+  }],
+  "user_message": "Marked 'finish the report' as completed! Great job! 🎉",
   "system_note": null
 }
 """
@@ -132,6 +181,14 @@ def parse_time_to_datetime(time_str):
         return None
 
 
+def parse_date(date_str):
+    """Parse date string in YYYY-MM-DD format."""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
 def execute_commands(commands, current_tasks):
     """Execute the commands and return results."""
     results = []
@@ -143,22 +200,61 @@ def execute_commands(commands, current_tasks):
         task_identifier = cmd.get("task_identifier")
 
         try:
-            if action == "create_task":
+            if action == "create_category":
+                name = data.get("name")
+                if not name:
+                    errors.append("Category name is required")
+                    continue
+                
+                category, created = Category.objects.get_or_create(
+                    name=name,
+                    defaults={'color': data.get("color", "#3b82f6")}
+                )
+                if created:
+                    results.append(f"Created category: {name}")
+                else:
+                    results.append(f"Category '{name}' already exists")
+
+            elif action == "create_task":
                 title = data.get("title")
                 if not title:
                     errors.append("Title is required for creating task")
                     continue
 
+                # Handle category
+                category = None
+                category_name = data.get("category_name", "Inbox")
+                if category_name:
+                    category, _ = Category.objects.get_or_create(
+                        name=category_name,
+                        defaults={'color': '#3b82f6'}
+                    )
+
                 task = Task.objects.create(
                     title=title,
-                    description=data.get("description", "")
+                    description=data.get("description", ""),
+                    category=category,
+                    priority=data.get("priority", "none")
                 )
+
+                # Handle due date
+                if "due_date" in data:
+                    due_date = parse_date(data["due_date"])
+                    if due_date:
+                        task.due_date_only = due_date
 
                 # Handle due time
                 if "due_time" in data:
-                    due_dt = parse_time_to_datetime(data["due_time"])
-                    if due_dt:
-                        task.due_date = due_dt
+                    try:
+                        time_obj = datetime.strptime(data["due_time"], "%I:%M %p").time()
+                        task.due_time = time_obj
+                        
+                        # Also set combined due_date for backward compatibility
+                        date_to_use = task.due_date_only if task.due_date_only else timezone.now().date()
+                        combined_dt = datetime.combine(date_to_use, time_obj)
+                        task.due_date = timezone.make_aware(combined_dt)
+                    except Exception:
+                        pass
 
                 # Handle tags
                 if "tags" in data:
@@ -167,6 +263,16 @@ def execute_commands(commands, current_tasks):
                         task.tags.add(tag)
 
                 task.save()
+
+                # Handle subtasks
+                if "subtasks" in data:
+                    for idx, subtask_title in enumerate(data["subtasks"]):
+                        SubTask.objects.create(
+                            task=task,
+                            title=subtask_title,
+                            order=idx
+                        )
+
                 results.append(f"Created task: {title} (ID: {task.id})")
 
             elif action == "update_task":
@@ -192,15 +298,43 @@ def execute_commands(commands, current_tasks):
                     task.description = data["description"]
                 if "status" in data:
                     task.status = data["status"]
+                if "priority" in data:
+                    task.priority = data["priority"]
+                if "category_name" in data:
+                    category, _ = Category.objects.get_or_create(
+                        name=data["category_name"],
+                        defaults={'color': '#3b82f6'}
+                    )
+                    task.category = category
+                if "due_date" in data:
+                    due_date = parse_date(data["due_date"])
+                    if due_date:
+                        task.due_date_only = due_date
                 if "due_time" in data:
-                    due_dt = parse_time_to_datetime(data["due_time"])
-                    if due_dt:
-                        task.due_date = due_dt
+                    try:
+                        time_obj = datetime.strptime(data["due_time"], "%I:%M %p").time()
+                        task.due_time = time_obj
+                        
+                        # Update combined due_date
+                        date_to_use = task.due_date_only if task.due_date_only else timezone.now().date()
+                        combined_dt = datetime.combine(date_to_use, time_obj)
+                        task.due_date = timezone.make_aware(combined_dt)
+                    except Exception:
+                        pass
                 if "tags" in data:
                     task.tags.clear()
                     for tag_name in data["tags"]:
                         tag, _ = Tag.objects.get_or_create(name=tag_name)
                         task.tags.add(tag)
+                if "subtasks" in data:
+                    # Clear existing subtasks and add new ones
+                    task.subtasks.all().delete()
+                    for idx, subtask_title in enumerate(data["subtasks"]):
+                        SubTask.objects.create(
+                            task=task,
+                            title=subtask_title,
+                            order=idx
+                        )
 
                 task.save()
                 results.append(f"Updated task: {task.title} (ID: {task.id})")
@@ -242,17 +376,30 @@ def chat_with_groq(user_message_text):
     tasks_query = Task.objects.all()
     current_tasks = []
     for t in tasks_query:
+        subtasks_list = [{"title": st.title, "completed": st.is_completed} for st in t.subtasks.all()]
         current_tasks.append({
             "id": t.id,
             "title": t.title,
             "description": t.description,
-            "due_date": t.due_date.strftime("%I:%M %p on %m/%d/%Y") if t.due_date else None,
+            "category": t.category_name,
+            "priority": t.priority,
+            "due_date": t.due_date_only.strftime("%Y-%m-%d") if t.due_date_only else None,
+            "due_time": t.due_time.strftime("%I:%M %p") if t.due_time else None,
+            "due_date_full": t.due_date.strftime("%I:%M %p on %m/%d/%Y") if t.due_date else None,
             "status": t.status,
-            "tags": [tag.name for tag in t.tags.all()]
+            "tags": [tag.name for tag in t.tags.all()],
+            "subtasks": subtasks_list
         })
 
-    # 3. Build context with current tasks
-    tasks_context = f"\n\nCURRENT TASKS IN DATABASE:\n{json.dumps(current_tasks, indent=2)}"
+    # 3. Get current categories
+    categories_list = [{"name": cat.name, "color": cat.color} for cat in Category.objects.all()]
+
+    # 4. Build context with current tasks and categories
+    context_data = {
+        "tasks": current_tasks,
+        "categories": categories_list
+    }
+    tasks_context = f"\n\nCURRENT TASKS IN DATABASE:\n{json.dumps(current_tasks, indent=2)}\n\nAVAILABLE CATEGORIES:\n{json.dumps(categories_list, indent=2)}"
     system_message = SYSTEM_INSTRUCTION + tasks_context
 
     messages = [
@@ -260,7 +407,7 @@ def chat_with_groq(user_message_text):
         {"role": "user", "content": user_message_text}
     ]
 
-    # 4. Get AI response
+    # 5. Get AI response
     try:
         response = client.chat.completions.create(
             model=MODEL_NAME,

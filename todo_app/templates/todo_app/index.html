@@ -3,121 +3,694 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Todo List</title>
+    <title>TickTick-Style Todo App</title>
     <style>
-        body { display: flex; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* CSS Variables for Theme */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f7f9;
+            --bg-sidebar: #f9fafb;
+            --bg-hover: #f0f2f5;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --text-muted: #95a5a6;
+            --border-color: #e0e4e8;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --priority-high: #ef4444;
+            --priority-medium: #f59e0b;
+            --priority-low: #3b82f6;
+        }
 
-        /* Chat Sidebar */
-        #chat-sidebar {
-            width: 350px;
-            border-right: 1px solid #e0e0e0;
+        [data-theme="dark"] {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252525;
+            --bg-sidebar: #202020;
+            --bg-hover: #2d2d2d;
+            --text-primary: #e4e4e7;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border-color: #3f3f46;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main Grid Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 250px 350px 1fr 350px;
+            grid-template-rows: 50px 1fr;
+            height: 100vh;
+        }
+
+        /* Top Navbar */
+        .navbar {
+            grid-column: 1 / -1;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .navbar h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .theme-toggle {
+            margin-left: auto;
+            padding: 6px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Left Sidebar - Navigation */
+        .sidebar {
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: 30px;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 20px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: background 0.15s;
+        }
+
+        .sidebar-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .sidebar-item.active {
+            background: var(--bg-hover);
+            border-left: 3px solid var(--accent-blue);
+            font-weight: 500;
+        }
+
+        .sidebar-item .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .sidebar-item .count {
+            margin-left: auto;
+            background: var(--bg-secondary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .category-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* AI Chat Pane */
+        .chat-pane {
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            background: #f5f7f9;
+            overflow: hidden;
         }
-        #chat-header { padding: 15px; border-bottom: 1px solid #e0e0e0; background: #fff; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        #clear-chat-btn { padding: 5px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em; }
-        #clear-chat-btn:hover { background: #c82333; }
-        #chat-messages {
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .clear-chat-btn {
+            padding: 5px 12px;
+            background: var(--accent-red);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: opacity 0.2s;
+        }
+
+        .clear-chat-btn:hover {
+            opacity: 0.9;
+        }
+
+        .chat-messages {
             flex: 1;
             overflow-y: auto;
             padding: 15px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
+
         .message {
             max-width: 85%;
             padding: 10px 14px;
             border-radius: 12px;
-            line-height: 1.4;
-            font-size: 0.95em;
+            line-height: 1.5;
+            font-size: 14px;
+            word-wrap: break-word;
         }
+
         .message.user {
-            background: #007bff;
+            background: var(--accent-blue);
             color: white;
             align-self: flex-end;
-            border-bottom-right-radius: 2px;
+            border-bottom-right-radius: 4px;
         }
-        .message.model {
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
-            align-self: flex-start;
-            border-bottom-left-radius: 2px;
-        }
-        #chat-input-area { padding: 15px; background: #fff; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; }
-        #chat-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
-        #send-btn { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 20px; cursor: pointer; }
-        #send-btn:hover { background: #0056b3; }
 
-        /* Task Main Area */
-        #task-main { flex: 1; padding: 30px; overflow-y: auto; background: #fff; }
-        h2 { margin-top: 0; color: #333; }
-        #task-list { display: flex; flex-direction: column; gap: 15px; }
-        .task-card {
-            border: 1px solid #eee;
-            padding: 15px;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: transform 0.1s;
+        .message.model {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
         }
-        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
-        .task-title-section { display: flex; align-items: center; gap: 10px; flex: 1; }
-        .task-checkbox { width: 18px; height: 18px; cursor: pointer; }
-        .task-title { font-weight: 600; font-size: 1.1em; color: #2c3e50; }
-        .task-title.completed { text-decoration: line-through; color: #888; }
-        .task-date { font-size: 0.85em; color: #888; }
-        .task-desc { color: #555; margin-bottom: 10px; font-size: 0.95em; }
-        .task-tags { display: flex; gap: 5px; flex-wrap: wrap; }
-        .tag { background: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; }
-        .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8em; text-transform: uppercase; font-weight: bold; }
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-completed { background: #d4edda; color: #155724; }
+
+        .chat-input-area {
+            padding: 15px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            outline: none;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .send-btn {
+            padding: 8px 18px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .send-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Task List Pane */
+        .task-list-pane {
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .task-section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-header.collapsible {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .section-header.collapsible:hover {
+            color: var(--text-secondary);
+        }
+
+        .section-toggle {
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .section-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .completed-tasks {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .completed-tasks.collapsed {
+            max-height: 0;
+        }
+
+        .task-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .task-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .task-item.selected {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .task-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin-top: 2px;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .task-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .priority-high {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--priority-high);
+        }
+
+        .priority-medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--priority-medium);
+        }
+
+        .priority-low {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--priority-low);
+        }
+
+        .task-tag {
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .task-category {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .task-due {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .task-due.overdue {
+            color: var(--accent-red);
+        }
+
+        /* Detail Pane */
+        .detail-pane {
+            background: var(--bg-primary);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .detail-pane.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .detail-header {
+            margin-bottom: 20px;
+        }
+
+        .detail-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .detail-section {
+            margin-bottom: 25px;
+        }
+
+        .detail-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-description {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .subtask-list {
+            list-style: none;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .subtask-item:last-child {
+            border-bottom: none;
+        }
+
+        .subtask-checkbox {
+            width: 16px;
+            height: 16px;
+        }
+
+        .subtask-title {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .subtask-title.completed {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .add-subtask-btn {
+            width: 100%;
+            padding: 8px;
+            background: var(--bg-secondary);
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        .add-subtask-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .delete-task-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--accent-red);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+            transition: opacity 0.2s;
+        }
+
+        .delete-task-btn:hover {
+            opacity: 0.9;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            min-width: 80px;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            opacity: 0.3;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
     </style>
 </head>
 <body>
-    <div id="chat-sidebar">
-        <div id="chat-header">
-            <span>AI Assistant</span>
-            <button id="clear-chat-btn" onclick="clearChat()">Clear Chat</button>
+    <div class="app-container">
+        <!-- Top Navbar -->
+        <div class="navbar">
+            <h1>✓ TickTick Todo</h1>
+            <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Theme</button>
         </div>
-        <div id="chat-messages">
-            <!-- Messages will appear here -->
+
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Smart Views</div>
+                <div class="sidebar-item" onclick="filterTasks('all')">
+                    <span class="icon">📋</span>
+                    <span>All</span>
+                    <span class="count" id="all-count">0</span>
+                </div>
+                <div class="sidebar-item active" onclick="filterTasks('inbox')">
+                    <span class="icon">📥</span>
+                    <span>Inbox</span>
+                    <span class="count" id="inbox-count">0</span>
+                </div>
+                <div class="sidebar-item" onclick="filterTasks('today')">
+                    <span class="icon">📅</span>
+                    <span>Today</span>
+                    <span class="count" id="today-count">0</span>
+                </div>
+                <div class="sidebar-item" onclick="filterTasks('next7days')">
+                    <span class="icon">📆</span>
+                    <span>Next 7 Days</span>
+                    <span class="count" id="week-count">0</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">Categories</div>
+                <div id="categories-list">
+                    <!-- Categories will be loaded here -->
+                </div>
+            </div>
         </div>
-        <div id="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
-            <button id="send-btn" onclick="sendMessage()">Send</button>
+
+        <!-- AI Chat Pane -->
+        <div class="chat-pane">
+            <div class="chat-header">
+                <h3>🤖 AI Assistant</h3>
+                <button class="clear-chat-btn" onclick="clearChat()">Clear</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" id="chat-input" 
+                       placeholder="Ask AI to manage your tasks..." 
+                       onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
         </div>
-    </div>
-    <div id="task-main">
-        <h2>My Tasks</h2>
-        <div id="task-list">
-            <!-- Tasks will appear here -->
+
+        <!-- Task List Pane -->
+        <div class="task-list-pane" id="task-list-pane">
+            <!-- Task sections will be rendered here -->
+        </div>
+
+        <!-- Detail Pane -->
+        <div class="detail-pane empty" id="detail-pane">
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div>Select a task to view details</div>
+            </div>
         </div>
     </div>
 
     <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const chatInput = document.getElementById('chat-input');
-        const taskList = document.getElementById('task-list');
+        // Global state
+        let allTasks = [];
+        let allCategories = [];
+        let selectedTask = null;
+        let currentFilter = 'inbox';
 
-        // Load initial data
+        // Theme management
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadChatHistory();
+            loadCategories();
             loadTasks();
         });
 
+        // Chat functions
         function handleKeyPress(e) {
             if (e.key === 'Enter') sendMessage();
         }
 
         async function sendMessage() {
+            const chatInput = document.getElementById('chat-input');
             const text = chatInput.value.trim();
             if (!text) return;
 
-            // Add user message to UI
             appendMessage('user', text);
             chatInput.value = '';
 
@@ -131,8 +704,9 @@
 
                 if (data.response) {
                     appendMessage('model', data.response);
-                    // Refresh tasks as the AI might have created one
-                    loadTasks();
+                    // Refresh data
+                    await loadTasks();
+                    await loadCategories();
                 } else if (data.error) {
                     appendMessage('model', 'Error: ' + data.error);
                 }
@@ -143,9 +717,9 @@
         }
 
         function appendMessage(role, text) {
+            const chatMessages = document.getElementById('chat-messages');
             const div = document.createElement('div');
             div.className = `message ${role}`;
-            // Simple markdown-like parsing for bold
             div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -163,96 +737,377 @@
             }
         }
 
+        async function clearChat() {
+            if (!confirm('Clear all chat history?')) return;
+            
+            try {
+                await fetch('/api/chat/clear/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                document.getElementById('chat-messages').innerHTML = '';
+            } catch (error) {
+                console.error('Error clearing chat:', error);
+            }
+        }
+
+        // Categories
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories/');
+                allCategories = await response.json();
+                renderCategories();
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categories-list');
+            container.innerHTML = allCategories.map(cat => `
+                <div class="sidebar-item" onclick="filterTasks('category', '${cat.name}')">
+                    <span class="category-color" style="background: ${cat.color}"></span>
+                    <span>${cat.name}</span>
+                    <span class="count">${cat.task_count || 0}</span>
+                </div>
+            `).join('');
+        }
+
+        // Tasks
         async function loadTasks() {
             try {
                 const response = await fetch('/api/tasks/');
-                const tasks = await response.json();
-                renderTasks(tasks);
+                allTasks = await response.json();
+                filterTasks(currentFilter);
+                updateCounts();
             } catch (error) {
                 console.error('Error loading tasks:', error);
             }
         }
 
-        function renderTasks(tasks) {
-            taskList.innerHTML = '';
-            tasks.forEach(task => {
-                const card = document.createElement('div');
-                card.className = 'task-card';
-
-                const dateStr = task.due_date ? new Date(task.due_date).toLocaleString() : 'No due date';
-                const statusClass = task.status === 'completed' ? 'status-completed' : 'status-pending';
-                const isCompleted = task.status === 'completed';
-                const titleClass = isCompleted ? 'task-title completed' : 'task-title';
-
-                let tagsHtml = '';
-                if (task.tags && task.tags.length > 0) {
-                    tagsHtml = '<div class="task-tags">' +
-                        task.tags.map(tag => `<span class="tag">#${tag.name}</span>`).join('') +
-                        '</div>';
-                }
-
-                card.innerHTML = `
-                    <div class="task-header">
-                        <div class="task-title-section">
-                            <input type="checkbox" class="task-checkbox" ${isCompleted ? 'checked' : ''} 
-                                   onchange="toggleTaskStatus(${task.id}, this.checked)">
-                            <span class="${titleClass}">${task.title}</span>
-                        </div>
-                        <span class="status-badge ${statusClass}">${task.status}</span>
-                    </div>
-                    <div class="task-date">${dateStr}</div>
-                    <div class="task-desc">${task.description}</div>
-                    ${tagsHtml}
-                `;
-                taskList.appendChild(card);
+        function filterTasks(filter, categoryName = null) {
+            currentFilter = filter;
+            
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
             });
+            event?.target?.closest('.sidebar-item')?.classList.add('active');
+
+            let filtered = [...allTasks];
+
+            if (filter === 'all') {
+                // Show all tasks (no additional filtering)
+            } else if (filter === 'inbox') {
+                filtered = filtered.filter(t => !t.category || t.category_name === 'Inbox');
+            } else if (filter === 'today') {
+                const today = new Date().toISOString().split('T')[0];
+                filtered = filtered.filter(t => t.due_date_only === today);
+            } else if (filter === 'next7days') {
+                const today = new Date();
+                const next7 = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+                filtered = filtered.filter(t => {
+                    if (!t.due_date_only) return false;
+                    const dueDate = new Date(t.due_date_only);
+                    return dueDate >= today && dueDate <= next7;
+                });
+            } else if (filter === 'category') {
+                filtered = filtered.filter(t => t.category_name === categoryName);
+            }
+
+            renderTasks(filtered);
+        }
+
+        function renderTasks(tasks) {
+            const pane = document.getElementById('task-list-pane');
+            
+            // Separate pending and completed tasks
+            const pendingTasks = tasks.filter(t => t.status === 'pending');
+            const completedTasks = tasks.filter(t => t.status === 'completed');
+            
+            if (tasks.length === 0) {
+                pane.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✨</div><div>No tasks here. Ask AI to create some!</div></div>';
+                return;
+            }
+
+            // Group pending tasks
+            const overdue = [];
+            const today = [];
+            const tomorrow = [];
+            const later = [];
+
+            const todayDate = new Date().toISOString().split('T')[0];
+            const tomorrowDate = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+            pendingTasks.forEach(task => {
+                if (!task.due_date_only) {
+                    later.push(task);
+                } else if (task.due_date_only < todayDate) {
+                    overdue.push(task);
+                } else if (task.due_date_only === todayDate) {
+                    today.push(task);
+                } else if (task.due_date_only === tomorrowDate) {
+                    tomorrow.push(task);
+                } else {
+                    later.push(task);
+                }
+            });
+
+            let html = '';
+            
+            if (overdue.length > 0) {
+                html += `<div class="task-section"><div class="section-header">⚠️ Overdue</div>`;
+                html += overdue.map(renderTaskItem).join('');
+                html += '</div>';
+            }
+            
+            if (today.length > 0) {
+                html += `<div class="task-section"><div class="section-header">📅 Today</div>`;
+                html += today.map(renderTaskItem).join('');
+                html += '</div>';
+            }
+            
+            if (tomorrow.length > 0) {
+                html += `<div class="task-section"><div class="section-header">📆 Tomorrow</div>`;
+                html += tomorrow.map(renderTaskItem).join('');
+                html += '</div>';
+            }
+            
+            if (later.length > 0) {
+                html += `<div class="task-section"><div class="section-header">📋 Later</div>`;
+                html += later.map(renderTaskItem).join('');
+                html += '</div>';
+            }
+
+            // Add completed section (collapsed by default)
+            if (completedTasks.length > 0) {
+                html += `
+                    <div class="task-section">
+                        <div class="section-header collapsible" onclick="toggleCompletedSection()">
+                            <span class="section-toggle collapsed">▼</span>
+                            ✅ Completed (${completedTasks.length})
+                        </div>
+                        <div class="completed-tasks collapsed">
+                            ${completedTasks.map(renderTaskItem).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            pane.innerHTML = html;
+        }
+
+        function toggleCompletedSection() {
+            const toggle = document.querySelector('.section-toggle');
+            const section = document.querySelector('.completed-tasks');
+            
+            if (toggle && section) {
+                toggle.classList.toggle('collapsed');
+                section.classList.toggle('collapsed');
+            }
+        }
+
+        function renderTaskItem(task) {
+            const isCompleted = task.status === 'completed';
+            const titleClass = isCompleted ? 'task-title completed' : 'task-title';
+            const selectedClass = selectedTask?.id === task.id ? 'selected' : '';
+            
+            let priorityBadge = '';
+            if (task.priority && task.priority !== 'none') {
+                priorityBadge = `<span class="task-badge priority-${task.priority}">${task.priority}</span>`;
+            }
+
+            const tags = (task.tags || []).map(tag => 
+                `<span class="task-tag">#${tag.name}</span>`
+            ).join('');
+
+            const category = task.category_name && task.category_name !== 'Inbox' 
+                ? `<span class="task-category">📁 ${task.category_name}</span>` 
+                : '';
+
+            const dueDate = task.due_date_only 
+                ? `<span class="task-due">${formatDate(task.due_date_only)}${task.due_time ? ' ' + task.due_time : ''}</span>` 
+                : '';
+
+            return `
+                <div class="task-item ${selectedClass}" onclick="selectTask(${task.id})">
+                    <div class="task-header">
+                        <input type="checkbox" class="task-checkbox" 
+                               ${isCompleted ? 'checked' : ''} 
+                               onclick="event.stopPropagation(); toggleTaskStatus(${task.id}, this.checked)">
+                        <div class="task-content">
+                            <div class="${titleClass}">${task.title}</div>
+                            <div class="task-meta">
+                                ${priorityBadge}
+                                ${category}
+                                ${dueDate}
+                                ${tags}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const tomorrow = new Date(today.getTime() + 86400000);
+            
+            if (dateStr === today.toISOString().split('T')[0]) return 'Today';
+            if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+            
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
         async function toggleTaskStatus(taskId, isCompleted) {
             try {
                 const status = isCompleted ? 'completed' : 'pending';
-                const response = await fetch(`/api/tasks/${taskId}/`, {
+                await fetch(`/api/tasks/${taskId}/`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: status })
                 });
-                
-                if (response.ok) {
-                    // Reload tasks to reflect changes
-                    loadTasks();
-                } else {
-                    console.error('Failed to update task status');
-                    // Reload to revert checkbox state
-                    loadTasks();
-                }
+                await loadTasks();
             } catch (error) {
                 console.error('Error updating task:', error);
-                loadTasks();
             }
         }
 
-        async function clearChat() {
-            if (!confirm('Are you sure you want to clear all chat history?')) {
+        async function selectTask(taskId) {
+            selectedTask = allTasks.find(t => t.id === taskId);
+            if (!selectedTask) return;
+
+            // Highlight selected task
+            document.querySelectorAll('.task-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.task-item')?.classList.add('selected');
+
+            // Render detail pane
+            const detailPane = document.getElementById('detail-pane');
+            detailPane.classList.remove('empty');
+            
+            const priorityColor = {
+                'high': 'var(--priority-high)',
+                'medium': 'var(--priority-medium)',
+                'low': 'var(--priority-low)'
+            }[selectedTask.priority] || 'var(--text-muted)';
+
+            const subtasksHtml = selectedTask.subtasks && selectedTask.subtasks.length > 0 
+                ? `<div class="detail-section">
+                    <div class="detail-section-title">Checklist</div>
+                    <ul class="subtask-list">
+                        ${selectedTask.subtasks.map((st, idx) => `
+                            <li class="subtask-item">
+                                <input type="checkbox" class="subtask-checkbox" 
+                                       ${st.completed ? 'checked' : ''}
+                                       onchange="toggleSubtask(${selectedTask.id}, ${idx}, this.checked)">
+                                <span class="subtask-title ${st.completed ? 'completed' : ''}">${st.title}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>` 
+                : '';
+
+            detailPane.innerHTML = `
+                <div class="detail-header">
+                    <div class="detail-title">${selectedTask.title}</div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">Details</div>
+                    <div class="info-row">
+                        <span class="info-label">Status</span>
+                        <span class="info-value">${selectedTask.status}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Priority</span>
+                        <span class="info-value" style="color: ${priorityColor}">${selectedTask.priority || 'None'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Category</span>
+                        <span class="info-value">${selectedTask.category_name || 'Inbox'}</span>
+                    </div>
+                    ${selectedTask.due_date_only ? `
+                    <div class="info-row">
+                        <span class="info-label">Due Date</span>
+                        <span class="info-value">${selectedTask.due_date_only}${selectedTask.due_time ? ' at ' + selectedTask.due_time : ''}</span>
+                    </div>
+                    ` : ''}
+                </div>
+
+                ${selectedTask.description ? `
+                <div class="detail-section">
+                    <div class="detail-section-title">Description</div>
+                    <div class="detail-description">${selectedTask.description}</div>
+                </div>
+                ` : ''}
+
+                ${subtasksHtml}
+
+                ${selectedTask.tags && selectedTask.tags.length > 0 ? `
+                <div class="detail-section">
+                    <div class="detail-section-title">Tags</div>
+                    <div class="task-meta">
+                        ${selectedTask.tags.map(tag => `<span class="task-tag">#${tag.name}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <button class="delete-task-btn" onclick="deleteTask(${selectedTask.id})">🗑️ Delete Task</button>
+            `;
+        }
+
+        async function toggleSubtask(taskId, subtaskIdx, isCompleted) {
+            // This would require a backend endpoint to update subtasks
+            console.log('Toggle subtask:', taskId, subtaskIdx, isCompleted);
+        }
+
+        async function deleteTask(taskId) {
+            if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
                 return;
             }
-            
+
             try {
-                // Delete all chat messages from the database
-                const response = await fetch('/api/chat/clear/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                await fetch(`/api/tasks/${taskId}/`, {
+                    method: 'DELETE'
                 });
                 
-                if (response.ok) {
-                    // Clear the UI
-                    chatMessages.innerHTML = '';
-                } else {
-                    alert('Failed to clear chat history');
-                }
+                // Clear detail pane
+                const detailPane = document.getElementById('detail-pane');
+                detailPane.classList.add('empty');
+                detailPane.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div>Select a task to view details</div></div>';
+                
+                selectedTask = null;
+                
+                // Reload tasks
+                await loadTasks();
             } catch (error) {
-                console.error('Error clearing chat:', error);
-                alert('Error clearing chat history');
+                console.error('Error deleting task:', error);
+                alert('Failed to delete task. Please try again.');
             }
+        }
+
+        function updateCounts() {
+            const today = new Date().toISOString().split('T')[0];
+            const next7 = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+            
+            const pending = allTasks.filter(t => t.status === 'pending');
+            
+            document.getElementById('all-count').textContent = pending.length;
+            
+            document.getElementById('inbox-count').textContent = 
+                pending.filter(t => !t.category || t.category_name === 'Inbox').length;
+            
+            document.getElementById('today-count').textContent = 
+                pending.filter(t => t.due_date_only === today).length;
+            
+            document.getElementById('week-count').textContent = 
+                pending.filter(t => {
+                    if (!t.due_date_only) return false;
+                    return t.due_date_only >= today && t.due_date_only <= next7;
+                }).length;
         }
     </script>
 </body>

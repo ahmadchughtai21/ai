@@ -1,9 +1,9 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
-from .models import Task, Tag, ChatMessage
-from .serializers import TaskSerializer, TagSerializer, ChatMessageSerializer
+from .models import Task, Tag, ChatMessage, Category, SubTask
+from .serializers import TaskSerializer, TagSerializer, ChatMessageSerializer, CategorySerializer, SubTaskSerializer
 from .groq_service import chat_with_groq
 
 # Template View
@@ -14,10 +14,38 @@ def index(request):
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all().order_by('-created_at')
     serializer_class = TaskSerializer
+    
+    @action(detail=True, methods=['post'])
+    def add_subtask(self, request, pk=None):
+        """Add a subtask to this task."""
+        task = self.get_object()
+        title = request.data.get('title')
+        if not title:
+            return Response({'error': 'Title is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        subtask = SubTask.objects.create(
+            task=task,
+            title=title,
+            order=task.subtasks.count()
+        )
+        serializer = SubTaskSerializer(subtask)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all().order_by('name')
+    serializer_class = CategorySerializer
+
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+
+class SubTaskViewSet(viewsets.ModelViewSet):
+    queryset = SubTask.objects.all()
+    serializer_class = SubTaskSerializer
+
 
 @api_view(['POST'])
 def chat_api(request):
