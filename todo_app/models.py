@@ -26,7 +26,7 @@ class Task(models.Model):
         ('pending', 'Pending'),
         ('completed', 'Completed'),
     ]
-    
+
     PRIORITY_CHOICES = [
         ('none', 'None'),
         ('low', 'Low'),
@@ -43,29 +43,29 @@ class Task(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     # NEW TickTick-style fields (all nullable/with defaults for backward compatibility)
     category = models.ForeignKey(
-        Category, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
         related_name='tasks',
         help_text='Category/List this task belongs to. Defaults to Inbox if not set.'
     )
     priority = models.CharField(
-        max_length=10, 
-        choices=PRIORITY_CHOICES, 
+        max_length=10,
+        choices=PRIORITY_CHOICES,
         default='none',
         help_text='Task priority level'
     )
     due_date_only = models.DateField(
-        null=True, 
+        null=True,
         blank=True,
         help_text='Due date without time component'
     )
     due_time = models.TimeField(
-        null=True, 
+        null=True,
         blank=True,
         help_text='Due time component'
     )
@@ -75,7 +75,7 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
-    
+
     @property
     def category_name(self):
         """Returns category name or 'Inbox' as default."""
@@ -85,8 +85,8 @@ class Task(models.Model):
 class SubTask(models.Model):
     """Checklist items within a task."""
     task = models.ForeignKey(
-        Task, 
-        on_delete=models.CASCADE, 
+        Task,
+        on_delete=models.CASCADE,
         related_name='subtasks'
     )
     title = models.CharField(max_length=200)

@@ -12,23 +12,37 @@ MODEL_NAME = "llama-3.1-8b-instant"
 
 
 SYSTEM_INSTRUCTION = """
-You are a TickTick-style Todo List Assistant. Your ONLY purpose is to help users manage their tasks with advanced features like categories, priorities, due dates, and subtasks.
+You are a TickTick-style Todo List Assistant. Your primary purpose is to help users manage their tasks with advanced features like categories, priorities, due dates, and subtasks.
 
-**STRICT SCOPE RESTRICTION:**
-You MUST REJECT any request that is NOT related to task management. This includes but not limited to:
-- Recipes (biryani, cooking, etc.)
-- General knowledge questions
+**FRIENDLY CONVERSATION:**
+You can respond to:
+- Greetings (hi, hello, hey, good morning, etc.) - Respond warmly and ask how you can help with tasks
+- Thank you / appreciation - Respond politely
+- Casual pleasantries - Respond briefly and redirect to tasks
+- Simple questions about what you can do - Explain your capabilities
+
+**STRICT SCOPE FOR COMPLEX REQUESTS:**
+You MUST REJECT detailed requests that are NOT related to task management:
+- Recipes, cooking instructions
+- General knowledge questions (history, science, etc.)
 - Weather information
-- Coding help (unless it's about tasks related to coding)
+- Coding help (unless it's about tasks related to coding projects)
 - Math problems
 - Translations
 - Stories or entertainment
 - Any other non-task-management topics
 
-If the user asks about anything NOT related to managing their todo list, respond with:
+**TASK MANAGEMENT INCLUDES:**
+- Creating, updating, deleting tasks
+- Viewing tasks (all, pending, completed)
+- Asking about task counts, statistics (e.g., "how many tasks completed?", "what's done?", "show completed tasks")
+- Task organization (categories, priorities, due dates)
+- Any questions about the user's tasks and their status
+
+For non-task requests (not greetings), respond with:
 {
   "commands": [],
-  "user_message": "Sorry, I can't help with that. I'm a todo list assistant and can only help you manage your tasks. Would you like to create, update, or view your tasks?",
+  "user_message": "I'm focused on helping you manage your tasks. I can't help with [topic]. Would you like to create, update, or view your tasks instead?",
   "system_note": null
 }
 
@@ -77,11 +91,13 @@ If the user asks about anything NOT related to managing their todo list, respond
 6. action: null - no database action needed (just answering task-related questions)
 
 **SMART DATE PARSING:**
-- "today" → use today's date
-- "tomorrow" → use tomorrow's date
+- "today" → use today's date (2025-12-28)
+- "tomorrow" → use tomorrow's date (2025-12-29)
+- "thursday", "next thursday" → calculate next occurring Thursday from today
 - "next monday", "next week" → calculate appropriate date
 - "in 3 days" → add 3 days to today
-- Always use YYYY-MM-DD format in response
+- CRITICAL: Current year is 2025. Always use dates in 2025 or later, NEVER 2024 or earlier
+- Always use YYYY-MM-DD format in response with correct year (2025 or later)
 
 **TIME FORMAT:**
 - Use 12-hour format: "8:00 PM", "9:30 AM", "5:00 PM"
@@ -205,7 +221,7 @@ def execute_commands(commands, current_tasks):
                 if not name:
                     errors.append("Category name is required")
                     continue
-                
+
                 category, created = Category.objects.get_or_create(
                     name=name,
                     defaults={'color': data.get("color", "#3b82f6")}
@@ -248,7 +264,7 @@ def execute_commands(commands, current_tasks):
                     try:
                         time_obj = datetime.strptime(data["due_time"], "%I:%M %p").time()
                         task.due_time = time_obj
-                        
+
                         # Also set combined due_date for backward compatibility
                         date_to_use = task.due_date_only if task.due_date_only else timezone.now().date()
                         combined_dt = datetime.combine(date_to_use, time_obj)
@@ -314,7 +330,7 @@ def execute_commands(commands, current_tasks):
                     try:
                         time_obj = datetime.strptime(data["due_time"], "%I:%M %p").time()
                         task.due_time = time_obj
-                        
+
                         # Update combined due_date
                         date_to_use = task.due_date_only if task.due_date_only else timezone.now().date()
                         combined_dt = datetime.combine(date_to_use, time_obj)
@@ -394,18 +410,49 @@ def chat_with_groq(user_message_text):
     # 3. Get current categories
     categories_list = [{"name": cat.name, "color": cat.color} for cat in Category.objects.all()]
 
-    # 4. Build context with current tasks and categories
+    # 4. Build context with current tasks and categories (separate by status)
+    pending_tasks = [t for t in current_tasks if t['status'] == 'pending']
+    completed_tasks = [t for t in current_tasks if t['status'] == 'completed']
+
     context_data = {
-        "tasks": current_tasks,
+        "pending_tasks": pending_tasks,
+        "completed_tasks": completed_tasks,
         "categories": categories_list
     }
-    tasks_context = f"\n\nCURRENT TASKS IN DATABASE:\n{json.dumps(current_tasks, indent=2)}\n\nAVAILABLE CATEGORIES:\n{json.dumps(categories_list, indent=2)}"
+
+    tasks_context = f"""
+
+CURRENT TASKS IN DATABASE:
+Pending Tasks ({len(pending_tasks)}): {json.dumps(pending_tasks, indent=2)}
+Completed Tasks ({len(completed_tasks)}): {json.dumps(completed_tasks, indent=2)}
+
+AVAILABLE CATEGORIES:
+{json.dumps(categories_list, indent=2)}
+
+IMPORTANT: When user asks about completed tasks, use the Completed Tasks list above. When they ask about pending/active tasks, use the Pending Tasks list."""
+
     system_message = SYSTEM_INSTRUCTION + tasks_context
 
-    messages = [
-        {"role": "system", "content": system_message},
-        {"role": "user", "content": user_message_text}
-    ]
+    # 5. Get last 2 conversation pairs for context (last 2 user + last 2 assistant messages)
+    recent_messages = ChatMessage.objects.order_by('-timestamp')[:4]  # Get last 4 messages
+    conversation_history = []
+
+    for msg in reversed(recent_messages):  # Reverse to get chronological order
+        if msg.content.strip():  # Only add non-empty messages
+            # Map 'model' role to 'assistant' for Groq API compatibility
+            role = 'assistant' if msg.role == 'model' else msg.role
+            conversation_history.append({
+                "role": role,
+                "content": msg.content
+            })
+
+    # Build messages array: system + conversation history + current user message
+    messages = [{"role": "system", "content": system_message}]
+    messages.extend(conversation_history)
+
+    # Only add current user message if it's not already in history
+    if not conversation_history or conversation_history[-1].get("content") != user_message_text:
+        messages.append({"role": "user", "content": user_message_text})
 
     # 5. Get AI response
     try:

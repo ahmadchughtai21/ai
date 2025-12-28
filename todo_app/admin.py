@@ -12,7 +12,7 @@ class SubTaskInline(admin.TabularInline):
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ['name', 'color', 'task_count', 'created_at']
     search_fields = ['name']
-    
+
     def task_count(self, obj):
         return obj.tasks.count()
     task_count.short_description = 'Tasks'
@@ -58,7 +58,7 @@ class SubTaskAdmin(admin.ModelAdmin):
 class ChatMessageAdmin(admin.ModelAdmin):
     list_display = ['role', 'content_preview', 'timestamp']
     list_filter = ['role', 'timestamp']
-    
+
     def content_preview(self, obj):
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
     content_preview.short_description = 'Content'

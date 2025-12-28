@@ -162,6 +162,52 @@
             border-radius: 50%;
         }
 
+        .search-box {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .tag-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+
+        .tag-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .tag-item.active {
+            background: var(--bg-hover);
+            border-left: 3px solid var(--accent-green);
+            font-weight: 500;
+        }
+
         /* AI Chat Pane */
         .chat-pane {
             background: var(--bg-primary);
@@ -591,6 +637,12 @@
 
         <!-- Left Sidebar -->
         <div class="sidebar">
+            <div class="search-box">
+                <input type="text" class="search-input" id="search-input"
+                       placeholder="🔍 Search tasks..."
+                       oninput="searchTasks()">
+            </div>
+
             <div class="sidebar-section">
                 <div class="sidebar-title">Smart Views</div>
                 <div class="sidebar-item" onclick="filterTasks('all')">
@@ -614,11 +666,18 @@
                     <span class="count" id="week-count">0</span>
                 </div>
             </div>
-            
+
             <div class="sidebar-section">
                 <div class="sidebar-title">Categories</div>
                 <div id="categories-list">
                     <!-- Categories will be loaded here -->
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Tags</div>
+                <div id="tags-list">
+                    <!-- Tags will be loaded here -->
                 </div>
             </div>
         </div>
@@ -633,8 +692,8 @@
                 <!-- Messages will appear here -->
             </div>
             <div class="chat-input-area">
-                <input type="text" class="chat-input" id="chat-input" 
-                       placeholder="Ask AI to manage your tasks..." 
+                <input type="text" class="chat-input" id="chat-input"
+                       placeholder="Ask AI to manage your tasks..."
                        onkeypress="handleKeyPress(event)">
                 <button class="send-btn" onclick="sendMessage()">Send</button>
             </div>
@@ -660,6 +719,8 @@
         let allCategories = [];
         let selectedTask = null;
         let currentFilter = 'inbox';
+        let searchQuery = '';
+        let selectedTag = null;
 
         // Theme management
         function toggleTheme() {
@@ -739,7 +800,7 @@
 
         async function clearChat() {
             if (!confirm('Clear all chat history?')) return;
-            
+
             try {
                 await fetch('/api/chat/clear/', {
                     method: 'POST',
@@ -749,6 +810,26 @@
             } catch (error) {
                 console.error('Error clearing chat:', error);
             }
+        }
+
+        // Search functionality
+        function searchTasks() {
+            searchQuery = document.getElementById('search-input').value.toLowerCase();
+            applyFilters();
+        }
+
+        function filterByTag(tagName) {
+            selectedTag = selectedTag === tagName ? null : tagName;
+
+            // Update tag active state
+            document.querySelectorAll('.tag-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (selectedTag && typeof event !== 'undefined' && event?.target) {
+                event.target.closest('.tag-item')?.classList.add('active');
+            }
+
+            applyFilters();
         }
 
         // Categories
@@ -765,7 +846,7 @@
         function renderCategories() {
             const container = document.getElementById('categories-list');
             container.innerHTML = allCategories.map(cat => `
-                <div class="sidebar-item" onclick="filterTasks('category', '${cat.name}')">
+                <div class="sidebar-item" onclick="filterByCategory('${cat.name}')">
                     <span class="category-color" style="background: ${cat.color}"></span>
                     <span>${cat.name}</span>
                     <span class="count">${cat.task_count || 0}</span>
@@ -773,11 +854,40 @@
             `).join('');
         }
 
+        function filterByCategory(categoryName) {
+            currentFilter = 'category';
+
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (typeof event !== 'undefined' && event?.target) {
+                event.target.closest('.sidebar-item')?.classList.add('active');
+            }
+
+            // Clear tag selection
+            selectedTag = null;
+            document.querySelectorAll('.tag-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Clear search
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            searchQuery = '';
+
+            let filtered = allTasks.filter(t => t.category_name === categoryName);
+            renderTasks(filtered);
+        }
+
         // Tasks
         async function loadTasks() {
             try {
                 const response = await fetch('/api/tasks/');
                 allTasks = await response.json();
+                renderTags();
                 filterTasks(currentFilter);
                 updateCounts();
             } catch (error) {
@@ -785,25 +895,75 @@
             }
         }
 
+        function renderTags() {
+            const pendingTasks = allTasks.filter(t => t.status === 'pending');
+            const tagsMap = new Map();
+
+            pendingTasks.forEach(task => {
+                if (task.tags && task.tags.length > 0) {
+                    task.tags.forEach(tag => {
+                        const count = tagsMap.get(tag.name) || 0;
+                        tagsMap.set(tag.name, count + 1);
+                    });
+                }
+            });
+
+            const container = document.getElementById('tags-list');
+            if (tagsMap.size === 0) {
+                container.innerHTML = '<div style="padding: 10px 20px; color: var(--text-muted); font-size: 12px;">No tags yet</div>';
+                return;
+            }
+
+            container.innerHTML = Array.from(tagsMap.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([tag, count]) => `
+                    <div class="tag-item ${selectedTag === tag ? 'active' : ''}" onclick="filterByTag('${tag}')">
+                        <span class="icon">#️⃣</span>
+                        <span>${tag}</span>
+                        <span class="count">${count}</span>
+                    </div>
+                `).join('');
+        }
+
         function filterTasks(filter, categoryName = null) {
             currentFilter = filter;
-            
+
             // Update sidebar active state
             document.querySelectorAll('.sidebar-item').forEach(item => {
                 item.classList.remove('active');
             });
-            event?.target?.closest('.sidebar-item')?.classList.add('active');
+            if (typeof event !== 'undefined' && event?.target) {
+                event.target.closest('.sidebar-item')?.classList.add('active');
+            }
 
+            // Clear tag selection when changing view
+            selectedTag = null;
+            document.querySelectorAll('.tag-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Clear search when changing view
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            searchQuery = '';
+
+            applyFilters();
+        }
+
+        function applyFilters() {
             let filtered = [...allTasks];
 
-            if (filter === 'all') {
+            // Apply view filter
+            if (currentFilter === 'all') {
                 // Show all tasks (no additional filtering)
-            } else if (filter === 'inbox') {
+            } else if (currentFilter === 'inbox') {
                 filtered = filtered.filter(t => !t.category || t.category_name === 'Inbox');
-            } else if (filter === 'today') {
+            } else if (currentFilter === 'today') {
                 const today = new Date().toISOString().split('T')[0];
                 filtered = filtered.filter(t => t.due_date_only === today);
-            } else if (filter === 'next7days') {
+            } else if (currentFilter === 'next7days') {
                 const today = new Date();
                 const next7 = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
                 filtered = filtered.filter(t => {
@@ -811,8 +971,21 @@
                     const dueDate = new Date(t.due_date_only);
                     return dueDate >= today && dueDate <= next7;
                 });
-            } else if (filter === 'category') {
-                filtered = filtered.filter(t => t.category_name === categoryName);
+            }
+
+            // Apply tag filter
+            if (selectedTag) {
+                filtered = filtered.filter(t =>
+                    t.tags && t.tags.some(tag => tag.name === selectedTag)
+                );
+            }
+
+            // Apply search filter
+            if (searchQuery) {
+                filtered = filtered.filter(t =>
+                    t.title.toLowerCase().includes(searchQuery) ||
+                    (t.description && t.description.toLowerCase().includes(searchQuery))
+                );
             }
 
             renderTasks(filtered);
@@ -820,11 +993,11 @@
 
         function renderTasks(tasks) {
             const pane = document.getElementById('task-list-pane');
-            
+
             // Separate pending and completed tasks
             const pendingTasks = tasks.filter(t => t.status === 'pending');
             const completedTasks = tasks.filter(t => t.status === 'completed');
-            
+
             if (tasks.length === 0) {
                 pane.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✨</div><div>No tasks here. Ask AI to create some!</div></div>';
                 return;
@@ -854,25 +1027,25 @@
             });
 
             let html = '';
-            
+
             if (overdue.length > 0) {
                 html += `<div class="task-section"><div class="section-header">⚠️ Overdue</div>`;
                 html += overdue.map(renderTaskItem).join('');
                 html += '</div>';
             }
-            
+
             if (today.length > 0) {
                 html += `<div class="task-section"><div class="section-header">📅 Today</div>`;
                 html += today.map(renderTaskItem).join('');
                 html += '</div>';
             }
-            
+
             if (tomorrow.length > 0) {
                 html += `<div class="task-section"><div class="section-header">📆 Tomorrow</div>`;
                 html += tomorrow.map(renderTaskItem).join('');
                 html += '</div>';
             }
-            
+
             if (later.length > 0) {
                 html += `<div class="task-section"><div class="section-header">📋 Later</div>`;
                 html += later.map(renderTaskItem).join('');
@@ -900,7 +1073,7 @@
         function toggleCompletedSection() {
             const toggle = document.querySelector('.section-toggle');
             const section = document.querySelector('.completed-tasks');
-            
+
             if (toggle && section) {
                 toggle.classList.toggle('collapsed');
                 section.classList.toggle('collapsed');
@@ -911,29 +1084,29 @@
             const isCompleted = task.status === 'completed';
             const titleClass = isCompleted ? 'task-title completed' : 'task-title';
             const selectedClass = selectedTask?.id === task.id ? 'selected' : '';
-            
+
             let priorityBadge = '';
             if (task.priority && task.priority !== 'none') {
                 priorityBadge = `<span class="task-badge priority-${task.priority}">${task.priority}</span>`;
             }
 
-            const tags = (task.tags || []).map(tag => 
+            const tags = (task.tags || []).map(tag =>
                 `<span class="task-tag">#${tag.name}</span>`
             ).join('');
 
-            const category = task.category_name && task.category_name !== 'Inbox' 
-                ? `<span class="task-category">📁 ${task.category_name}</span>` 
+            const category = task.category_name && task.category_name !== 'Inbox'
+                ? `<span class="task-category">📁 ${task.category_name}</span>`
                 : '';
 
-            const dueDate = task.due_date_only 
-                ? `<span class="task-due">${formatDate(task.due_date_only)}${task.due_time ? ' ' + task.due_time : ''}</span>` 
+            const dueDate = task.due_date_only
+                ? `<span class="task-due">${formatDate(task.due_date_only)}${task.due_time ? ' ' + task.due_time : ''}</span>`
                 : '';
 
             return `
                 <div class="task-item ${selectedClass}" onclick="selectTask(${task.id})">
                     <div class="task-header">
-                        <input type="checkbox" class="task-checkbox" 
-                               ${isCompleted ? 'checked' : ''} 
+                        <input type="checkbox" class="task-checkbox"
+                               ${isCompleted ? 'checked' : ''}
                                onclick="event.stopPropagation(); toggleTaskStatus(${task.id}, this.checked)">
                         <div class="task-content">
                             <div class="${titleClass}">${task.title}</div>
@@ -953,10 +1126,10 @@
             const date = new Date(dateStr);
             const today = new Date();
             const tomorrow = new Date(today.getTime() + 86400000);
-            
+
             if (dateStr === today.toISOString().split('T')[0]) return 'Today';
             if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
-            
+
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
@@ -987,27 +1160,27 @@
             // Render detail pane
             const detailPane = document.getElementById('detail-pane');
             detailPane.classList.remove('empty');
-            
+
             const priorityColor = {
                 'high': 'var(--priority-high)',
                 'medium': 'var(--priority-medium)',
                 'low': 'var(--priority-low)'
             }[selectedTask.priority] || 'var(--text-muted)';
 
-            const subtasksHtml = selectedTask.subtasks && selectedTask.subtasks.length > 0 
+            const subtasksHtml = selectedTask.subtasks && selectedTask.subtasks.length > 0
                 ? `<div class="detail-section">
                     <div class="detail-section-title">Checklist</div>
                     <ul class="subtask-list">
                         ${selectedTask.subtasks.map((st, idx) => `
                             <li class="subtask-item">
-                                <input type="checkbox" class="subtask-checkbox" 
+                                <input type="checkbox" class="subtask-checkbox"
                                        ${st.completed ? 'checked' : ''}
                                        onchange="toggleSubtask(${selectedTask.id}, ${idx}, this.checked)">
                                 <span class="subtask-title ${st.completed ? 'completed' : ''}">${st.title}</span>
                             </li>
                         `).join('')}
                     </ul>
-                </div>` 
+                </div>`
                 : '';
 
             detailPane.innerHTML = `
@@ -1073,14 +1246,14 @@
                 await fetch(`/api/tasks/${taskId}/`, {
                     method: 'DELETE'
                 });
-                
+
                 // Clear detail pane
                 const detailPane = document.getElementById('detail-pane');
                 detailPane.classList.add('empty');
                 detailPane.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div>Select a task to view details</div></div>';
-                
+
                 selectedTask = null;
-                
+
                 // Reload tasks
                 await loadTasks();
             } catch (error) {
@@ -1092,18 +1265,18 @@
         function updateCounts() {
             const today = new Date().toISOString().split('T')[0];
             const next7 = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
-            
+
             const pending = allTasks.filter(t => t.status === 'pending');
-            
+
             document.getElementById('all-count').textContent = pending.length;
-            
-            document.getElementById('inbox-count').textContent = 
+
+            document.getElementById('inbox-count').textContent =
                 pending.filter(t => !t.category || t.category_name === 'Inbox').length;
-            
-            document.getElementById('today-count').textContent = 
+
+            document.getElementById('today-count').textContent =
                 pending.filter(t => t.due_date_only === today).length;
-            
-            document.getElementById('week-count').textContent = 
+
+            document.getElementById('week-count').textContent =
                 pending.filter(t => {
                     if (!t.due_date_only) return false;
                     return t.due_date_only >= today && t.due_date_only <= next7;

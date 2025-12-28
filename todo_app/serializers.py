@@ -10,11 +10,11 @@ class TagSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     task_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Category
         fields = ['id', 'name', 'color', 'task_count', 'created_at']
-    
+
     def get_task_count(self, obj):
         return obj.tasks.filter(status='pending').count()
 
@@ -40,7 +40,7 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = [
-            'id', 'title', 'description', 'due_date', 'status', 'media', 
+            'id', 'title', 'description', 'due_date', 'status', 'media',
             'tags', 'tag_ids', 'created_at', 'updated_at',
             # New TickTick fields
             'category', 'category_id', 'category_name', 'category_detail',

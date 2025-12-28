@@ -14,7 +14,7 @@ def index(request):
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all().order_by('-created_at')
     serializer_class = TaskSerializer
-    
+
     @action(detail=True, methods=['post'])
     def add_subtask(self, request, pk=None):
         """Add a subtask to this task."""
@@ -22,7 +22,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         title = request.data.get('title')
         if not title:
             return Response({'error': 'Title is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         subtask = SubTask.objects.create(
             task=task,
             title=title,

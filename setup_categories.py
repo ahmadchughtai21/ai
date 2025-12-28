@@ -27,19 +27,19 @@ DEFAULT_CATEGORIES = [
 def setup_categories():
     """Create default categories if they don't exist."""
     created_count = 0
-    
+
     for cat_data in DEFAULT_CATEGORIES:
         category, created = Category.objects.get_or_create(
             name=cat_data['name'],
             defaults={'color': cat_data['color']}
         )
-        
+
         if created:
             print(f"✓ Created category: {category.name} ({category.color})")
             created_count += 1
         else:
             print(f"- Category already exists: {category.name}")
-    
+
     print(f"\n{'='*50}")
     print(f"Setup complete! Created {created_count} new categories.")
     print(f"Total categories: {Category.objects.count()}")
