@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Django Server",
+			"type": "shell",
+			"command": "python3 manage.py runserver 0.0.0.0:8000",
+			"isBackground": true,
+			"group": "test"
+		},
+		{
+			"label": "Run Django Server (Venv)",
+			"type": "shell",
+			"command": "/home/ahmad/repos/temp/.venv/bin/python manage.py runserver 0.0.0.0:8000",
+			"isBackground": true,
+			"group": "test"
+		}
+	]
+}
