@@ -1,11 +1,18 @@
 from django.contrib import admin
-from .models import Task, Tag, ChatMessage, Category, SubTask
+from .models import Task, Tag, ChatMessage, Category, SubTask, Attachment
 
 
 class SubTaskInline(admin.TabularInline):
     model = SubTask
     extra = 1
     fields = ['title', 'is_completed', 'order']
+
+
+class AttachmentInline(admin.TabularInline):
+    model = Attachment
+    extra = 0
+    fields = ['file', 'filename', 'file_size', 'content_type', 'uploaded_at']
+    readonly_fields = ['uploaded_at']
 
 
 @admin.register(Category)
@@ -24,7 +31,7 @@ class TaskAdmin(admin.ModelAdmin):
     list_filter = ['status', 'priority', 'category', 'created_at']
     search_fields = ['title', 'description']
     filter_horizontal = ['tags']
-    inlines = [SubTaskInline]
+    inlines = [SubTaskInline, AttachmentInline]
     fieldsets = (
         ('Basic Info', {
             'fields': ('title', 'description', 'status')

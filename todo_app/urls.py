@@ -7,6 +7,7 @@ router.register(r'tasks', views.TaskViewSet)
 router.register(r'categories', views.CategoryViewSet)
 router.register(r'tags', views.TagViewSet)
 router.register(r'subtasks', views.SubTaskViewSet)
+router.register(r'attachments', views.AttachmentViewSet)
 
 urlpatterns = [
     path('', views.index, name='index'),

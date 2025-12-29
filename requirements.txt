@@ -3,3 +3,4 @@ djangorestframework
 python-dotenv
 groq
 pillow
+python-dateutil
