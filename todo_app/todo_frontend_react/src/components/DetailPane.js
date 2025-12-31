@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getTask, deleteTask, toggleSubtaskComplete, deleteAttachment } from '../services/api';
 
-const DetailPane = ({ taskId, onTaskDeleted, onTaskUpdated, onEditTask, refreshTrigger }) => {
+const DetailPane = ({ taskId, onTaskDeleted, onTaskUpdated, onEditTask, refreshTrigger, className = '', onClose }) => {
   const [task, setTask] = useState(null);
 
   const loadTask = useCallback(async () => {
@@ -70,7 +70,7 @@ const DetailPane = ({ taskId, onTaskDeleted, onTaskUpdated, onEditTask, refreshT
 
   if (!task) {
     return (
-      <div className="detail-pane empty">
+      <div className={`detail-pane empty ${className}`}>
         <div className="empty-state">
           <div className="empty-state-icon">📝</div>
           <div>Select a task to view details</div>
@@ -86,7 +86,31 @@ const DetailPane = ({ taskId, onTaskDeleted, onTaskUpdated, onEditTask, refreshT
   }[task.priority] || 'var(--text-muted)';
 
   return (
-    <div className="detail-pane">
+    <div className={`detail-pane ${className}`}>
+      {onClose && (
+        <button 
+          className="mobile-close-btn" 
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: '18px',
+            zIndex: 10
+          }}
+        >
+          ×
+        </button>
+      )}
       <div className="detail-header">
         <div>
           <div className="detail-title">{task.title}</div>

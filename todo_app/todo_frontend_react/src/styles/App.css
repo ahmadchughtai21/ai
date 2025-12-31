@@ -1099,6 +1099,37 @@ body {
     opacity: 1;
 }
 
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0 4px;
+}
+
+.category-settings-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-settings-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+    opacity: 1;
+    transform: rotate(90deg);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
 .icon-btn-small {
     background: none;
     border: none;
@@ -1316,4 +1347,521 @@ body {
 
 .remove-subtask-btn:hover {
     color: var(--accent-red);
+}
+/* ===================================
+   RESPONSIVE DESIGN - MOBILE & TABLET
+   =================================== */
+
+/* Tablet - Portrait (768px - 1024px) */
+@media (max-width: 1024px) {
+    .app-container {
+        grid-template-columns: 220px 300px 1fr;
+        grid-template-rows: 50px 1fr;
+    }
+
+    /* Hide detail pane on tablet, show on click */
+    .detail-pane {
+        position: fixed;
+        right: -100%;
+        top: 50px;
+        bottom: 0;
+        width: 350px;
+        z-index: 100;
+        transition: right 0.3s ease;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .detail-pane.mobile-visible {
+        right: 0;
+    }
+
+    .navbar h1 {
+        font-size: 18px;
+    }
+
+    .navbar-actions {
+        gap: 8px;
+    }
+
+    .add-task-btn,
+    .theme-toggle {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+}
+
+/* Tablet - Landscape & Small Desktop (max-width: 1280px) */
+@media (max-width: 1280px) and (min-width: 1025px) {
+    .app-container {
+        grid-template-columns: 230px 320px 1fr 320px;
+    }
+}
+
+/* Mobile - Landscape (481px - 767px) */
+@media (max-width: 767px) and (min-width: 481px) {
+    .app-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 50px 1fr;
+    }
+
+    /* Sidebar as slide-out menu */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 50px;
+        bottom: 0;
+        width: 250px;
+        z-index: 101;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .sidebar.mobile-visible {
+        left: 0;
+    }
+
+    /* Chat pane as slide-out */
+    .chat-pane {
+        position: fixed;
+        left: -100%;
+        top: 50px;
+        bottom: 0;
+        width: 300px;
+        z-index: 100;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .chat-pane.mobile-visible {
+        left: 0;
+    }
+
+    /* Task list takes full width */
+    .task-list-pane {
+        grid-column: 1;
+    }
+
+    /* Detail pane as slide-out */
+    .detail-pane {
+        position: fixed;
+        right: -100%;
+        top: 50px;
+        bottom: 0;
+        width: 100%;
+        max-width: 400px;
+        z-index: 100;
+        transition: right 0.3s ease;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .detail-pane.mobile-visible {
+        right: 0;
+    }
+
+    /* Navbar adjustments */
+    .navbar {
+        padding: 0 16px;
+    }
+
+    .navbar h1 {
+        font-size: 16px;
+    }
+
+    .add-task-btn span {
+        display: none;
+    }
+
+    .add-task-btn {
+        padding: 8px 12px;
+    }
+
+    /* Task items more compact */
+    .task-item {
+        padding: 12px;
+    }
+
+    .task-title {
+        font-size: 14px;
+    }
+
+    .task-meta {
+        font-size: 11px;
+    }
+}
+
+/* Mobile - Portrait (max-width: 480px) */
+@media (max-width: 480px) {
+    .app-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 50px 1fr;
+    }
+
+    /* Sidebar as full-width slide-out */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 50px;
+        bottom: 0;
+        width: 80%;
+        max-width: 280px;
+        z-index: 102;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar.mobile-visible {
+        left: 0;
+    }
+
+    /* Chat pane as full-width slide-out */
+    .chat-pane {
+        position: fixed;
+        left: -100%;
+        top: 50px;
+        bottom: 0;
+        width: 85%;
+        max-width: 320px;
+        z-index: 101;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .chat-pane.mobile-visible {
+        left: 0;
+    }
+
+    /* Task list takes full width */
+    .task-list-pane {
+        grid-column: 1;
+        border-right: none;
+    }
+
+    /* Detail pane as full-screen slide-out */
+    .detail-pane {
+        position: fixed;
+        right: -100%;
+        top: 50px;
+        bottom: 0;
+        width: 100%;
+        z-index: 101;
+        transition: right 0.3s ease;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+        padding: 16px;
+    }
+
+    .detail-pane.mobile-visible {
+        right: 0;
+    }
+
+    /* Navbar mobile */
+    .navbar {
+        padding: 0 12px;
+    }
+
+    .navbar h1 {
+        font-size: 16px;
+    }
+
+    .navbar-actions {
+        gap: 6px;
+    }
+
+    .add-task-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        padding: 0;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    }
+
+    .add-task-btn span {
+        display: none;
+    }
+
+    .add-task-btn span:first-child {
+        display: block;
+    }
+
+    .theme-toggle {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    /* Task pane adjustments */
+    .task-pane-header {
+        padding: 16px;
+    }
+
+    .task-list-content {
+        padding: 16px;
+    }
+
+    .task-item {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .task-title {
+        font-size: 14px;
+    }
+
+    .task-meta {
+        font-size: 10px;
+        gap: 6px;
+    }
+
+    .task-badge {
+        padding: 3px 8px;
+        font-size: 10px;
+    }
+
+    /* Detail pane mobile */
+    .detail-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .detail-actions {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .detail-title {
+        font-size: 18px;
+    }
+
+    .detail-description {
+        font-size: 13px;
+    }
+
+    .detail-section {
+        padding: 12px;
+    }
+
+    .detail-section h4 {
+        font-size: 11px;
+    }
+
+    /* Modal adjustments */
+    .modal-content {
+        width: 95%;
+        max-width: 95%;
+        max-height: 90vh;
+        margin: 5vh auto;
+        padding: 16px;
+    }
+
+    .modal-header h2 {
+        font-size: 18px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-actions button {
+        width: 100%;
+    }
+
+    /* Chat messages mobile */
+    .message {
+        max-width: 90%;
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+
+    .chat-input-area {
+        padding: 12px;
+    }
+
+    .chat-input {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+
+    .send-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+
+    /* Sidebar mobile */
+    .sidebar-item {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    .sidebar-title {
+        padding: 0 16px;
+        font-size: 10px;
+    }
+
+    .tag-item {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+
+    /* Subtasks mobile */
+    .subtask-input-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .btn-add-subtask {
+        width: 100%;
+    }
+
+    .subtask-item {
+        padding: 6px;
+        font-size: 13px;
+    }
+
+    /* Attachments mobile */
+    .detail-attachments {
+        grid-template-columns: 1fr;
+    }
+
+    .attachment-item {
+        padding: 10px;
+    }
+
+    /* Statistics mobile */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+}
+
+/* Overlay for mobile menus */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* Mobile menu toggle button */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+}
+
+@media (max-width: 1024px) {
+    .mobile-menu-toggle {
+        display: block;
+    }
+}
+
+/* Ensure scrollable areas work on mobile */
+@media (max-width: 767px) {
+    .chat-messages,
+    .task-list-content,
+    .detail-pane,
+    .sidebar {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Better touch targets */
+    .task-checkbox,
+    .subtask-checkbox {
+        min-width: 24px;
+        min-height: 24px;
+    }
+
+    button,
+    .sidebar-item,
+    .task-item,
+    .tag-item {
+        min-height: 44px;
+    }
+}
+
+/* Landscape phone adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+    .navbar {
+        height: 45px;
+        grid-row: 1;
+    }
+
+    .app-container {
+        grid-template-rows: 45px 1fr;
+    }
+
+    .sidebar,
+    .chat-pane,
+    .detail-pane {
+        top: 45px;
+    }
+
+    .modal-content {
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .sidebar,
+    .chat-pane,
+    .detail-actions,
+    .mobile-menu-toggle,
+    .mobile-overlay {
+        display: none !important;
+    }
+
+    .app-container {
+        display: block;
+    }
+
+    .task-list-pane,
+    .detail-pane {
+        position: static;
+        width: 100%;
+        border: none;
+        box-shadow: none;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
 }

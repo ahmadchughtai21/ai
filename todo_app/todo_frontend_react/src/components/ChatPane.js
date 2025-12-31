@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sendChatMessage, getChatHistory, clearChatHistory } from '../services/api';
 
-const ChatPane = ({ onTasksUpdated }) => {
+const ChatPane = ({ onTasksUpdated, className = '' }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +89,7 @@ const ChatPane = ({ onTasksUpdated }) => {
   };
 
   return (
-    <div className="chat-pane">
+    <div className={`chat-pane ${className}`}>
       <div className="chat-header">
         <h3>🤖 AI Assistant</h3>
         <button className="clear-chat-btn" onClick={handleClearChat}>

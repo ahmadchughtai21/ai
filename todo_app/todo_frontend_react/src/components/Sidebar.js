@@ -9,7 +9,9 @@ const Sidebar = forwardRef(({
   onTagFilter,
   currentFilter,
   statistics,
-  selectedTag
+  selectedTag,
+  className = '',
+  onMobileClose
 }, ref) => {
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
@@ -49,15 +51,21 @@ const Sidebar = forwardRef(({
   const handleTagClick = (tagName) => {
     const newTag = selectedTag === tagName ? null : tagName;
     onTagFilter(newTag);
+    if (onMobileClose && window.innerWidth <= 480) {
+      onMobileClose();
+    }
   };
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${className}`}>
       <div className="sidebar-section">
         <div className="sidebar-title">Smart Views</div>
         <div
           className={`sidebar-item ${currentFilter === 'all' ? 'active' : ''}`}
-          onClick={() => onFilterChange('all')}
+          onClick={() => {
+            onFilterChange('all');
+            if (onMobileClose && window.innerWidth <= 480) onMobileClose();
+          }}
         >
           <span className="icon">📋</span>
           <span>All</span>
@@ -65,7 +73,10 @@ const Sidebar = forwardRef(({
         </div>
         <div
           className={`sidebar-item ${currentFilter === 'inbox' ? 'active' : ''}`}
-          onClick={() => onFilterChange('inbox')}
+          onClick={() => {
+            onFilterChange('inbox');
+            if (onMobileClose && window.innerWidth <= 480) onMobileClose();
+          }}
         >
           <span className="icon">📥</span>
           <span>Inbox</span>
@@ -73,7 +84,10 @@ const Sidebar = forwardRef(({
         </div>
         <div
           className={`sidebar-item ${currentFilter === 'today' ? 'active' : ''}`}
-          onClick={() => onFilterChange('today')}
+          onClick={() => {
+            onFilterChange('today');
+            if (onMobileClose && window.innerWidth <= 480) onMobileClose();
+          }}
         >
           <span className="icon">📅</span>
           <span>Today</span>
@@ -81,7 +95,10 @@ const Sidebar = forwardRef(({
         </div>
         <div
           className={`sidebar-item ${currentFilter === 'next7days' ? 'active' : ''}`}
-          onClick={() => onFilterChange('next7days')}
+          onClick={() => {
+            onFilterChange('next7days');
+            if (onMobileClose && window.innerWidth <= 480) onMobileClose();
+          }}
         >
           <span className="icon">🗓️</span>
           <span>Next 7 Days</span>
@@ -90,13 +107,12 @@ const Sidebar = forwardRef(({
       </div>
 
       <div className="sidebar-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <div className="section-header">
           <div className="sidebar-title">Categories</div>
           <button
-            className="icon-btn-small"
+            className="category-settings-btn"
             onClick={() => setShowCategoryManager(true)}
             title="Manage Categories"
-            style={{ fontSize: '16px' }}
           >
             ⚙️
           </button>
@@ -106,7 +122,10 @@ const Sidebar = forwardRef(({
             <div
               key={category.id}
               className={`sidebar-item ${currentFilter === 'category-' + category.name ? 'active' : ''}`}
-              onClick={() => onCategoryFilter(category.name)}
+              onClick={() => {
+                onCategoryFilter(category.name);
+                if (onMobileClose && window.innerWidth <= 480) onMobileClose();
+              }}
             >
               <span
                 className="category-color"

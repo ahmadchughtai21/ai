@@ -31,6 +31,9 @@ function App() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const sidebarRef = useRef();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
 
   const loadStatistics = useCallback(async () => {
@@ -156,6 +159,10 @@ function App() {
 
   const handleTaskSelect = (taskId) => {
     setSelectedTaskId(taskId);
+    // Auto-open detail pane on mobile when task is selected
+    if (window.innerWidth <= 1024) {
+      setMobileDetailOpen(true);
+    }
   };
 
   const handleTaskDeleted = () => {
@@ -193,10 +200,36 @@ function App() {
     setEditingTask(null);
   };
 
+  const toggleMobileSidebar = () => {
+    setMobileSidebarOpen(!mobileSidebarOpen);
+    setMobileChatOpen(false);
+    setMobileDetailOpen(false);
+  };
+
+  const toggleMobileChat = () => {
+    setMobileChatOpen(!mobileChatOpen);
+    setMobileSidebarOpen(false);
+    setMobileDetailOpen(false);
+  };
+
+  const closeMobileMenus = () => {
+    setMobileSidebarOpen(false);
+    setMobileChatOpen(false);
+    setMobileDetailOpen(false);
+  };
+
+  const closeMobileDetail = () => {
+    setMobileDetailOpen(false);
+  };
+
   return (
     <ThemeProvider>
       <div className="app-container">
-        <Navbar onAddTask={handleAddTask} />
+        <Navbar
+          onAddTask={handleAddTask}
+          onToggleSidebar={toggleMobileSidebar}
+          onToggleChat={toggleMobileChat}
+        />
         <Sidebar
           ref={sidebarRef}
           onFilterChange={handleFilterChange}
@@ -206,8 +239,13 @@ function App() {
           currentFilter={currentFilter}
           statistics={statistics}
           selectedTag={selectedTag}
+          className={mobileSidebarOpen ? 'mobile-visible' : ''}
+          onMobileClose={closeMobileMenus}
         />
-        <ChatPane onTasksUpdated={handleTasksUpdated} />
+        <ChatPane
+          onTasksUpdated={handleTasksUpdated}
+          className={mobileChatOpen ? 'mobile-visible' : ''}
+        />
         <TaskListPane
           tasks={tasks}
           onTaskSelect={handleTaskSelect}
@@ -221,6 +259,8 @@ function App() {
           onTaskUpdated={handleTasksUpdated}
           onEditTask={handleEditTask}
           refreshTrigger={refreshTrigger}
+          className={mobileDetailOpen ? 'mobile-visible' : ''}
+          onClose={closeMobileDetail}
         />
         {showTaskForm && (
           <TaskForm
@@ -229,6 +269,11 @@ function App() {
             onCancel={handleFormCancel}
           />
         )}
+        {/* Mobile overlay */}
+        <div
+          className={`mobile-overlay ${mobileSidebarOpen || mobileChatOpen || mobileDetailOpen ? 'active' : ''}`}
+          onClick={closeMobileMenus}
+        ></div>
       </div>
     </ThemeProvider>
   );

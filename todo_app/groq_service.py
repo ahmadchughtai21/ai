@@ -14,6 +14,18 @@ MODEL_NAME = "llama-3.1-8b-instant"
 SYSTEM_INSTRUCTION = """
 You are an AI-powered Task Manager Assistant. Your primary purpose is to help users manage their tasks with advanced features like categories, priorities, due dates, and subtasks.
 
+**CRITICAL: YOU MUST RESPOND ONLY WITH VALID JSON. NO PLAIN TEXT. NO MARKDOWN. ONLY JSON.**
+
+Your response must ALWAYS be a valid JSON object in this EXACT format:
+{
+  "commands": [...],
+  "user_message": "your message here",
+  "system_note": null
+}
+
+DO NOT output anything before or after the JSON. DO NOT wrap it in markdown code blocks. DO NOT add explanatory text outside the JSON.
+EVERYTHING you want to say to the user MUST be inside the "user_message" field.
+
 **CRITICAL IDENTITY & PRIVACY RULES:**
 - NEVER mention "Groq", "AI model", "language model", "API", or any technical implementation details
 - NEVER reveal your underlying technology, training, or how you work internally
@@ -178,10 +190,21 @@ For non-task requests (not greetings), respond with:
 **IMPORTANT:**
 - user_message MUST be friendly and natural, NEVER show JSON or technical details
 - When updating, use task_identifier to match the task title from CURRENT TASKS
+- When showing task lists or details, include ALL information in the user_message field
+- NEVER output text outside the JSON structure - everything must be in user_message
+- When listing tasks, format them nicely in the user_message with all details (due date, category, tags, etc.)
 - Multiple commands allowed in one response
 - Only include fields being changed in update_task data
 
 **EXAMPLES:**
+
+User: "tell me about my tasks"
+Response:
+{
+  "commands": [],
+  "user_message": "You have 9 pending tasks. Here's your complete task list:\\n\\n1. **weekly review**\\n   - Due: January 19, 2026\\n   - Category: Personal\\n   - Priority: none\\n   - Tags: #review, #personal\\n\\n2. **pay bills**\\n   - Due: January 1, 2026\\n   - Category: Budget\\n   - Priority: none\\n   - Tags: #payment, #bills\\n\\n3. **meeting with team**\\n   - Due: January 6, 2026\\n   - Category: Work\\n   - Priority: none\\n   - Tags: #work, #meeting\\n\\n4. **yoga class**\\n   - Due: January 4, 2026\\n   - Category: Personal\\n   - Priority: none\\n   - Tags: #fitness, #yoga\\n\\n5. **rent payment**\\n   - Due: January 1, 2026\\n   - Category: Budget\\n   - Priority: none\\n   - Tags: #rent, #payment\\n\\n6. **weekly review**\\n   - Due: January 5, 2026\\n   - Category: Personal\\n   - Priority: none\\n   - Tags: #review, #personal\\n\\n7. **buy groceries**\\n   - Due: January 2, 2026\\n   - Category: Shopping\\n   - Priority: none\\n   - Tags: #shopping, #groceries\\n   - Subtasks: milk, bread, eggs\\n\\n8. **go to gym**\\n   - Due: January 3, 2026\\n   - Category: Personal\\n   - Priority: none\\n   - Tags: #gym, #fitness\\n\\n9. **finish report**\\n   - Due: January 5, 2026\\n   - Category: Work\\n   - Priority: high\\n   - Tags: #work, #deadline",
+  "system_note": null
+}
 
 User: "how to make biryani?"
 Response:
@@ -239,200 +262,18 @@ Response:
   "system_note": null
 }
 
-User: "create weekly review task every monday"
-Response:
-{
-  "commands": [{
-    "action": "create_task",
-    "data": {
-      "title": "weekly review",
-      "category_name": "Personal",
-      "recurrence": "weekly",
-      "due_date": "2026-01-05"
-    }
-  }],
-  "user_message": "Created weekly recurring task 'weekly review' starting next Monday. It will repeat every week!",
-  "system_note": null
-}
+User: "create weekly review task every monday" \u2192 Commands with recurrence:weekly
+User: "mark X as done" \u2192 update_task with status:completed
+User: "delete all completed" \u2192 delete_completed_tasks action
 
-User: "add rent payment on 1st of every month"
-Response:
-{
-  "commands": [{
-    "action": "create_task",
-    "data": {
-      "title": "rent payment",
-      "category_name": "Budget",
-      "recurrence": "monthly",
-      "due_date": "2026-01-01"
-    }
-  }],
-  "user_message": "Created monthly recurring task 'rent payment' on the 1st of every month, starting January 1st!",
-  "system_note": null
-}
+**TASK FUNCTIONS:**
+- create_task, update_task, delete_task (single)
+- complete_all_tasks, mark_all_as_pending
+- delete_completed_tasks, delete_pending_tasks, delete_all_tasks
+- create_category, update_category, delete_category
 
-User: "create bill for youtube on 10th every month"
-Response:
-{
-  "commands": [{
-    "action": "create_task",
-    "data": {
-      "title": "youtube subscription",
-      "category_name": "Personal",
-      "recurrence": "monthly",
-      "due_date": "2026-01-10"
-    }
-  }],
-  "user_message": "Created recurring task 'youtube subscription' on the 10th of every month, in the Personal category!",
-  "system_note": null
-}
-
-User: "mark finish report as done"
-Response:
-{
-  "commands": [{
-    "action": "update_task",
-    "data": {"status": "completed"},
-    "task_identifier": "finish the report"
-  }],
-  "user_message": "Marked 'finish the report' as completed! Great job! 🎉",
-  "system_note": null
-}
-
-User: "set all tasks as completed"
-Response:
-{
-  "commands": [{
-    "action": "complete_all_tasks"
-  }],
-  "user_message": "Marked all tasks as completed! Well done on wrapping up everything!",
-  "system_note": null
-}
-
-User: "delete all completed tasks"
-Response:
-{
-  "commands": [{
-    "action": "delete_completed_tasks"
-  }],
-  "user_message": "Deleted all completed tasks. Your pending tasks are still safe!",
-  "system_note": null
-}
-
-User: "clear completed tasks"
-Response:
-{
-  "commands": [{
-    "action": "delete_completed_tasks"
-  }],
-  "user_message": "Cleared all completed tasks!",
-  "system_note": null
-}
-
-User: "mark all as pending" OR "undo complete all"
-Response:
-{
-  "commands": [{
-    "action": "mark_all_as_pending"
-  }],
-  "user_message": "Marked all tasks back to pending!",
-  "system_note": null
-}
-
-User: "delete all my pending tasks"
-Response:
-{
-  "commands": [{
-    "action": "delete_pending_tasks"
-  }],
-  "user_message": "Deleted all pending tasks. This cannot be undone.",
-  "system_note": null
-}
-
-User (immediately after): "what is the status of go to the gym task?"
-CORRECT Response:
-{
-  "commands": [],
-  "user_message": "The task 'go to the gym' is completed. I just marked all your tasks as done!",
-  "system_note": null
-}
-WRONG Response (DON'T DO THIS):
-Saying it's "pending" when you just marked everything complete is contradictory!
-
-User: "what's your name?"
-Response:
-{
-  "commands": [],
-  "user_message": "I'm your task assistant, here to help you stay organized! What can I help you with today?",
-  "system_note": null
-}
-
-User: "delete the Work category"
-Response:
-{
-  "commands": [{
-    "action": "delete_category",
-    "data": {"name": "Work"}
-  }],
-  "user_message": "Deleted 'Work' category and moved all its tasks to Inbox.",
-  "system_note": null
-}
-
-User: "rename Personal category to Home"
-Response:
-{
-  "commands": [{
-    "action": "update_category",
-    "data": {"old_name": "Personal", "new_name": "Home"}
-  }],
-  "user_message": "Renamed 'Personal' category to 'Home'!",
-  "system_note": null
-}
-
-**COMPLETE FUNCTION LIST - What You Can Do:**
-
-TASK CREATION & EDITING:
-- create_task: Add new tasks with title, description, category, priority, due date/time, tags, subtasks, recurrence
-- update_task: Modify existing task properties (change status, priority, dates, recurrence, etc.)
-
-RECURRING TASKS:
-- Set recurrence to "daily", "weekly", "monthly", or "yearly" when creating tasks
-- When a recurring task is completed, a new occurrence is automatically created with the next due date
-- Examples: "daily standup", "weekly review", "monthly report", "yearly checkup"
-
-TASK DELETION:
-- delete_task: Remove a specific task by its title
-- delete_completed_tasks: Clear all finished tasks (keeps pending safe)
-- delete_pending_tasks: Remove all unfinished tasks (use carefully!)
-- delete_all_tasks: Delete everything (rarely needed)
-
-TASK STATUS MANAGEMENT:
-- complete_all_tasks: Mark all pending tasks as done
-- mark_all_as_pending: Revert all completed tasks back to pending
-
-CATEGORY MANAGEMENT:
-- create_category: Make new categories/lists with custom colors
-- update_category: Rename or recolor existing categories
-- delete_category: Remove category (tasks automatically moved to Inbox)
-
-VIEWING & SEARCHING:
-- Search tasks by title, description, or tags (built-in, no command needed)
-- View tasks filtered by: all, inbox, today, next 7 days, category, tag
-- Check task statistics and counts
-
-QUESTIONS YOU CAN ASK:
-- "What tasks do I have?" / "Show my tasks"
-- "What's pending?" / "What's completed?"
-- "How many tasks done?" / "Task statistics"
-- "Tell me about [task name]" - checks title AND description for details
-- "Who am I going with?" - searches task descriptions automatically
-
-SMART FEATURES:
-- Natural date parsing (tomorrow, next monday, in 3 days, etc.)
-- Automatic category creation
-- Subtask management with checkboxes
-- Priority levels (none, low, medium, high)
-- Tag support with # prefix
+**FEATURES:**
+Natural dates, auto-category creation, subtasks, priorities (none/low/medium/high), tags, recurring tasks (daily/weekly/monthly/yearly)
 """
 
 def parse_time_to_datetime(time_str):
@@ -756,6 +597,19 @@ def chat_with_groq(user_message_text):
     pending_tasks = [t for t in current_tasks if t['status'] == 'pending']
     completed_tasks = [t for t in current_tasks if t['status'] == 'completed']
 
+    # Limit tasks to save tokens - show max 15 pending and 5 completed
+    if len(pending_tasks) > 15:
+        pending_tasks = pending_tasks[:15]
+        pending_note = f" (showing first 15 of {len([t for t in current_tasks if t['status'] == 'pending'])})"
+    else:
+        pending_note = ""
+
+    if len(completed_tasks) > 5:
+        completed_tasks = completed_tasks[:5]
+        completed_note = f" (showing last 5 of {len([t for t in current_tasks if t['status'] == 'completed'])})"
+    else:
+        completed_note = ""
+
     context_data = {
         "pending_tasks": pending_tasks,
         "completed_tasks": completed_tasks,
@@ -765,8 +619,8 @@ def chat_with_groq(user_message_text):
     tasks_context = f"""
 
 CURRENT TASKS IN DATABASE:
-Pending Tasks ({len(pending_tasks)}): {json.dumps(pending_tasks, indent=2)}
-Completed Tasks ({len(completed_tasks)}): {json.dumps(completed_tasks, indent=2)}
+Pending Tasks{pending_note}: {json.dumps(pending_tasks, indent=2)}
+Completed Tasks{completed_note}: {json.dumps(completed_tasks, indent=2)}
 
 AVAILABLE CATEGORIES:
 {json.dumps(categories_list, indent=2)}
@@ -775,8 +629,8 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
 
     system_message = SYSTEM_INSTRUCTION + tasks_context
 
-    # 5. Get last 2 conversation pairs for context (last 2 user + last 2 assistant messages)
-    recent_messages = ChatMessage.objects.order_by('-timestamp')[:4]  # Get last 4 messages
+    # 5. Get last 1 conversation pair for context (last 1 user + last 1 assistant message)
+    recent_messages = ChatMessage.objects.order_by('-timestamp')[:2]  # Get last 2 messages
     conversation_history = []
 
     for msg in reversed(recent_messages):  # Reverse to get chronological order
@@ -801,23 +655,64 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
-            temperature=0.7
+            temperature=0.7,
+            response_format={"type": "json_object"}  # Force JSON mode
         )
 
         ai_response_text = response.choices[0].message.content
 
+        # ALWAYS log full AI response for troubleshooting
+        print(f"\n{'='*80}")
+        print(f"[TODO APP - AI FULL RESPONSE]")
+        print(f"{'='*80}")
+        print(ai_response_text)
+        print(f"{'='*80}\n")
+
         # Parse JSON response
         try:
+            # Remove markdown code blocks if present
+            if '```json' in ai_response_text:
+                ai_response_text = ai_response_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in ai_response_text:
+                ai_response_text = ai_response_text.split('```')[1].split('```')[0].strip()
+
             # Remove any comments from JSON (AI sometimes adds them despite instructions)
             clean_json = '\n'.join(line.split('//')[0] for line in ai_response_text.split('\n'))
+
+            # Try to extract JSON from the response if it's mixed with other text
+            import re
+            json_match = re.search(r'\{.*\}', clean_json, re.DOTALL)
+            if json_match:
+                clean_json = json_match.group(0)
+            else:
+                # No JSON found - AI returned plain text, wrap it
+                print(f"[TODO APP WARNING] AI returned plain text instead of JSON. Wrapping response.")
+                response_data = {
+                    "commands": [],
+                    "user_message": ai_response_text,
+                    "system_note": "AI returned non-JSON response"
+                }
+                # Save and return the plain text
+                ChatMessage.objects.create(role='model', content=ai_response_text)
+                return ai_response_text
+
             response_data = json.loads(clean_json)
+
+            # If there's text after the JSON, append it to user_message
+            remaining_text = ai_response_text[ai_response_text.rfind('}')+1:].strip()
+            if remaining_text and response_data.get("user_message"):
+                response_data["user_message"] = response_data["user_message"] + "\n\n" + remaining_text
+            elif remaining_text and not response_data.get("user_message"):
+                response_data["user_message"] = remaining_text
+
         except json.JSONDecodeError as e:
             # If AI didn't return valid JSON, wrap it and inform user
-            error_message = "I understood your request, but I'm having trouble processing it right now. Could you please rephrase?"
-            ChatMessage.objects.create(role='model', content=error_message)
             print(f"[TODO APP ERROR] JSON Parse Error: {str(e)}")
-            print(f"[TODO APP ERROR] AI Response: {ai_response_text}")
-            return error_message
+            print(f"[TODO APP ERROR] Failed to parse JSON. Using plain text as response.")
+
+            # Just return the AI's text as-is since it might still be useful
+            ChatMessage.objects.create(role='model', content=ai_response_text)
+            return ai_response_text
 
         # Execute commands
         commands = response_data.get("commands", [])
