@@ -88,8 +88,8 @@ const DetailPane = ({ taskId, onTaskDeleted, onTaskUpdated, onEditTask, refreshT
   return (
     <div className={`detail-pane ${className}`}>
       {onClose && (
-        <button 
-          className="mobile-close-btn" 
+        <button
+          className="mobile-close-btn"
           onClick={onClose}
           style={{
             position: 'absolute',
