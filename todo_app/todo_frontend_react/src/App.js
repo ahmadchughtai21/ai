@@ -253,15 +253,20 @@ function App() {
           onTaskToggle={handleTasksUpdated}
           onSearch={handleSearch}
         />
-        <DetailPane
-          taskId={selectedTaskId}
-          onTaskDeleted={handleTaskDeleted}
-          onTaskUpdated={handleTasksUpdated}
-          onEditTask={handleEditTask}
-          refreshTrigger={refreshTrigger}
-          className={mobileDetailOpen ? 'mobile-visible' : ''}
-          onClose={closeMobileDetail}
-        />
+        {selectedTaskId && (
+          <DetailPane
+            taskId={selectedTaskId}
+            onTaskDeleted={handleTaskDeleted}
+            onTaskUpdated={handleTasksUpdated}
+            onEditTask={handleEditTask}
+            refreshTrigger={refreshTrigger}
+            className={mobileDetailOpen || selectedTaskId ? 'mobile-visible' : ''}
+            onClose={() => {
+              setSelectedTaskId(null);
+              closeMobileDetail();
+            }}
+          />
+        )}
         {showTaskForm && (
           <TaskForm
             task={editingTask}

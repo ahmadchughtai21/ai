@@ -87,30 +87,6 @@ const DetailPane = ({ taskId, onTaskDeleted, onTaskUpdated, onEditTask, refreshT
 
   return (
     <div className={`detail-pane ${className}`}>
-      {onClose && (
-        <button
-          className="mobile-close-btn"
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '50%',
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: '18px',
-            zIndex: 10
-          }}
-        >
-          ×
-        </button>
-      )}
       <div className="detail-header">
         <div>
           <div className="detail-title">{task.title}</div>
@@ -122,6 +98,11 @@ const DetailPane = ({ taskId, onTaskDeleted, onTaskUpdated, onEditTask, refreshT
           <button className="icon-btn danger" onClick={handleDeleteTask} title="Delete task">
             🗑️
           </button>
+          {onClose && (
+            <button className="icon-btn close-detail-btn" onClick={onClose} title="Close details">
+              ✕
+            </button>
+          )}
         </div>
       </div>
 

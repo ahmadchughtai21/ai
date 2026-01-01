@@ -87,8 +87,8 @@ const TaskListPane = ({ tasks, onTaskSelect, selectedTaskId, onTaskToggle, onSea
             type="checkbox"
             className="task-checkbox"
             checked={isCompleted}
+            onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
-              e.stopPropagation();
               handleTaskToggle(task.id, task.status);
             }}
           />

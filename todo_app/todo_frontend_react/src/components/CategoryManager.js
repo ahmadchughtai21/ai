@@ -72,7 +72,24 @@ const CategoryManager = ({ onClose, onCategoryUpdated, categories }) => {
       <div className="modal-content category-manager-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Manage Categories</h2>
-          <button className="modal-close-btn" onClick={onClose}>×</button>
+          <button
+            className="modal-close-btn"
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ff4444',
+              fontSize: '24px',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              lineHeight: 1,
+              transition: 'opacity 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.target.style.opacity = '0.7'}
+            onMouseLeave={(e) => e.target.style.opacity = '1'}
+          >
+            ✕
+          </button>
         </div>
 
         <div className="modal-body">
@@ -125,7 +142,7 @@ const CategoryManager = ({ onClose, onCategoryUpdated, categories }) => {
 
           {/* Category List */}
           <div className="category-list">
-            <h3 style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--text-muted)' }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--text-muted)', paddingLeft: '0' }}>
               EXISTING CATEGORIES
             </h3>
             {categories.map(category => (
@@ -142,7 +159,7 @@ const CategoryManager = ({ onClose, onCategoryUpdated, categories }) => {
                     }}
                   ></span>
                   <span style={{ flex: 1 }}>{category.name}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '12px', padding: '0px 5px' }}>
                     {category.task_count || 0} tasks
                   </span>
                 </div>
@@ -161,11 +178,19 @@ const CategoryManager = ({ onClose, onCategoryUpdated, categories }) => {
                   >
                     ✏️
                   </button>
-                  {category.name !== 'Inbox' && (
+                  {category.name !== 'Inbox' ? (
                     <button
                       className="icon-btn-small danger"
                       onClick={() => handleDeleteCategory(category)}
                       title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  ) : (
+                    <button
+                      className="icon-btn-small"
+                      style={{ visibility: 'hidden' }}
+                      disabled
                     >
                       🗑️
                     </button>
