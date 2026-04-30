@@ -3,7 +3,7 @@ from groq import Groq
 from django.conf import settings
 from .models import Task, Tag, ChatMessage, Category, SubTask
 import json
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, date
 from django.utils import timezone
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -345,7 +345,7 @@ def parse_date(date_str):
         return None
 
 
-def execute_commands(commands, current_tasks):
+def execute_commands(commands, current_tasks, user):
     """Execute the commands and return results."""
     results = []
     errors = []
@@ -363,6 +363,7 @@ def execute_commands(commands, current_tasks):
                     continue
 
                 category, created = Category.objects.get_or_create(
+                    user=user,
                     name=name,
                     defaults={'color': data.get("color", "#3b82f6")}
                 )
@@ -377,7 +378,7 @@ def execute_commands(commands, current_tasks):
                     continue
 
                 try:
-                    category = Category.objects.get(name=old_name)
+                    category = Category.objects.get(user=user, name=old_name)
                     if "new_name" in data:
                         category.name = data["new_name"]
                     if "color" in data:
@@ -394,10 +395,10 @@ def execute_commands(commands, current_tasks):
                     continue
 
                 try:
-                    category = Category.objects.get(name=name)
+                    category = Category.objects.get(user=user, name=name)
                     # Move all tasks in this category to Inbox
-                    inbox, _ = Category.objects.get_or_create(name="Inbox", defaults={'color': '#6b7280'})
-                    task_count = Task.objects.filter(category=category).update(category=inbox)
+                    inbox, _ = Category.objects.get_or_create(user=user, name="Inbox", defaults={'color': '#6b7280'})
+                    task_count = Task.objects.filter(user=user, category=category).update(category=inbox)
                     category.delete()
                     results.append(f"Deleted category '{name}' and moved {task_count} task(s) to Inbox")
                 except Category.DoesNotExist:
@@ -413,11 +414,13 @@ def execute_commands(commands, current_tasks):
                 category_name = data.get("category_name", "Inbox")
                 if category_name:
                     category, _ = Category.objects.get_or_create(
+                        user=user,
                         name=category_name,
                         defaults={'color': '#3b82f6'}
                     )
 
                 task = Task.objects.create(
+                    user=user,
                     title=title,
                     description=data.get("description", ""),
                     category=category,
@@ -476,7 +479,7 @@ def execute_commands(commands, current_tasks):
                 # Handle tags
                 if "tags" in data:
                     for tag_name in data["tags"]:
-                        tag, _ = Tag.objects.get_or_create(name=tag_name)
+                        tag, _ = Tag.objects.get_or_create(user=user, name=tag_name)
                         task.tags.add(tag)
 
                 task.save()
@@ -501,7 +504,7 @@ def execute_commands(commands, current_tasks):
                 task = None
                 for t in current_tasks:
                     if t['title'].lower() == task_identifier.lower():
-                        task = Task.objects.get(id=t['id'])
+                        task = Task.objects.get(id=t['id'], user=user)
                         break
 
                 if not task:
@@ -532,6 +535,7 @@ def execute_commands(commands, current_tasks):
                     task.is_recurring = recurrence != "none"
                 if "category_name" in data:
                     category, _ = Category.objects.get_or_create(
+                        user=user,
                         name=data["category_name"],
                         defaults={'color': '#3b82f6'}
                     )
@@ -554,7 +558,7 @@ def execute_commands(commands, current_tasks):
                 if "tags" in data:
                     task.tags.clear()
                     for tag_name in data["tags"]:
-                        tag, _ = Tag.objects.get_or_create(name=tag_name)
+                        tag, _ = Tag.objects.get_or_create(user=user, name=tag_name)
                         task.tags.add(tag)
                 if "subtasks" in data:
                     # Clear existing subtasks and add new ones
@@ -578,7 +582,7 @@ def execute_commands(commands, current_tasks):
                 task = None
                 for t in current_tasks:
                     if t['title'].lower() == task_identifier.lower():
-                        task = Task.objects.get(id=t['id'])
+                        task = Task.objects.get(id=t['id'], user=user)
                         break
 
                 if task:
@@ -588,23 +592,23 @@ def execute_commands(commands, current_tasks):
                     errors.append(f"Task '{task_identifier}' not found")
 
             elif action == "delete_all_tasks":
-                count, _ = Task.objects.all().delete()
+                count, _ = Task.objects.filter(user=user).delete()
                 results.append(f"Deleted all {count} tasks")
 
             elif action == "delete_completed_tasks":
-                count, _ = Task.objects.filter(status='completed').delete()
+                count, _ = Task.objects.filter(user=user, status='completed').delete()
                 results.append(f"Deleted {count} completed task(s)")
 
             elif action == "delete_pending_tasks":
-                count, _ = Task.objects.filter(status='pending').delete()
+                count, _ = Task.objects.filter(user=user, status='pending').delete()
                 results.append(f"Deleted {count} pending task(s)")
 
             elif action == "complete_all_tasks":
-                updated = Task.objects.filter(status='pending').update(status='completed')
+                updated = Task.objects.filter(user=user, status='pending').update(status='completed')
                 results.append(f"Marked {updated} task(s) as completed")
 
             elif action == "mark_all_as_pending":
-                updated = Task.objects.filter(status='completed').update(status='pending')
+                updated = Task.objects.filter(user=user, status='completed').update(status='pending')
                 results.append(f"Marked {updated} task(s) as pending")
 
         except Exception as e:
@@ -613,13 +617,13 @@ def execute_commands(commands, current_tasks):
     return results, errors
 
 
-def chat_with_groq(user_message_text):
+def chat_with_groq(user_message_text, user):
     """Process user message and execute task commands."""
     # 1. Save user message
-    ChatMessage.objects.create(role='user', content=user_message_text)
+    ChatMessage.objects.create(user=user, role='user', content=user_message_text)
 
     # 2. Get current tasks from database
-    tasks_query = Task.objects.all()
+    tasks_query = Task.objects.filter(user=user)
     current_tasks = []
     for t in tasks_query:
         subtasks_list = [{"title": st.title, "completed": st.is_completed} for st in t.subtasks.all()]
@@ -638,7 +642,7 @@ def chat_with_groq(user_message_text):
         })
 
     # 3. Get current categories
-    categories_list = [{"name": cat.name, "color": cat.color} for cat in Category.objects.all()]
+    categories_list = [{"name": cat.name, "color": cat.color} for cat in Category.objects.filter(user=user)]
 
     # 4. Build context with current tasks and categories (separate by status)
     pending_tasks = [t for t in current_tasks if t['status'] == 'pending']
@@ -680,7 +684,7 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
     system_message = SYSTEM_INSTRUCTION + datetime_context + tasks_context
 
     # 5. Get last 1 conversation pair for context (last 1 user + last 1 assistant message)
-    recent_messages = ChatMessage.objects.order_by('-timestamp')[:2]  # Get last 2 messages
+    recent_messages = ChatMessage.objects.filter(user=user).order_by('-timestamp')[:2]  # Get last 2 messages
     conversation_history = []
 
     for msg in reversed(recent_messages):  # Reverse to get chronological order
@@ -743,7 +747,7 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
                     "system_note": "AI returned non-JSON response"
                 }
                 # Save and return the plain text
-                ChatMessage.objects.create(role='model', content=ai_response_text)
+                ChatMessage.objects.create(user=user, role='model', content=ai_response_text)
                 return ai_response_text
 
             response_data = json.loads(clean_json)
@@ -761,7 +765,7 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
             print(f"[TODO APP ERROR] Failed to parse JSON. Using plain text as response.")
 
             # Just return the AI's text as-is since it might still be useful
-            ChatMessage.objects.create(role='model', content=ai_response_text)
+            ChatMessage.objects.create(user=user, role='model', content=ai_response_text)
             return ai_response_text
 
         # Execute commands
@@ -770,7 +774,7 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
         system_note = response_data.get("system_note")
 
         if commands:
-            results, errors = execute_commands(commands, current_tasks)
+            results, errors = execute_commands(commands, current_tasks, user)
 
             # Log to terminal for admin
             if results:
@@ -782,7 +786,7 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
 
         # Save AI response
         if user_message:
-            ChatMessage.objects.create(role='model', content=user_message)
+            ChatMessage.objects.create(user=user, role='model', content=user_message)
 
         return user_message if user_message else "Task processed."
 
@@ -793,6 +797,5 @@ IMPORTANT: When user asks about completed tasks, use the Completed Tasks list ab
         # Never reveal technical details to user - just show friendly error
         friendly_msg = "I'm having trouble processing that right now. Please try again in a moment."
 
-        ChatMessage.objects.create(role='model', content=friendly_msg)
+        ChatMessage.objects.create(user=user, role='model', content=friendly_msg)
         return friendly_msg
-

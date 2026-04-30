@@ -5,6 +5,8 @@ AI-powered todo app with a Django REST backend and a React frontend, built aroun
 ## Features
 
 - AI chat commands for task creation, updates, queries, and deletion
+- User authentication (signup/login/logout)
+- Per-user data isolation for tasks, categories, tags, and chat history
 - Categories, priorities, tags, subtasks, due date/time
 - Recurring tasks (`daily`, `weekly`, `monthly`, `yearly`)
 - Task attachments (file upload/delete)
@@ -83,7 +85,11 @@ node node_modules/react-scripts/bin/react-scripts.js start
 
 App URLs:
 
-- Frontend: http://localhost:3000
+- Public landing page: http://localhost:8000/
+- App (after login): http://localhost:8000/app/
+- Login: http://localhost:8000/login/
+- Signup: http://localhost:8000/signup/
+- Frontend (dev): http://localhost:3000
 - Backend API: http://localhost:8000/api/
 - Admin: http://localhost:8000/admin/
 - DRF browser: http://localhost:8000/api/
@@ -144,3 +150,4 @@ The assistant is restricted to task-management operations.
 - Backend not reachable: ensure `python manage.py runserver` is running on port `8000`
 - Frontend not reachable: run frontend from `todo_app/todo_frontend_react`
 - AI chat fails: verify `GROQ_API_KEY` is set correctly in `.env`
+- React frontend also provides `/`, `/login`, `/signup`, and `/app` routes with auth-gated workspace access.

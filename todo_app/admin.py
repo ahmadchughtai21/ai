@@ -17,8 +17,9 @@ class AttachmentInline(admin.TabularInline):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'color', 'task_count', 'created_at']
-    search_fields = ['name']
+    list_display = ['name', 'user', 'color', 'task_count', 'created_at']
+    list_filter = ['user']
+    search_fields = ['name', 'user__username']
 
     def task_count(self, obj):
         return obj.tasks.count()
@@ -27,14 +28,14 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ['title', 'category', 'priority', 'status', 'due_date_only', 'created_at']
-    list_filter = ['status', 'priority', 'category', 'created_at']
-    search_fields = ['title', 'description']
+    list_display = ['title', 'user', 'category', 'priority', 'status', 'due_date_only', 'created_at']
+    list_filter = ['user', 'status', 'priority', 'category', 'created_at']
+    search_fields = ['title', 'description', 'user__username']
     filter_horizontal = ['tags']
     inlines = [SubTaskInline, AttachmentInline]
     fieldsets = (
         ('Basic Info', {
-            'fields': ('title', 'description', 'status')
+            'fields': ('user', 'title', 'description', 'status')
         }),
         ('Organization', {
             'fields': ('category', 'priority', 'tags')
@@ -50,8 +51,9 @@ class TaskAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ['name']
-    search_fields = ['name']
+    list_display = ['name', 'user']
+    list_filter = ['user']
+    search_fields = ['name', 'user__username']
 
 
 @admin.register(SubTask)
@@ -63,8 +65,8 @@ class SubTaskAdmin(admin.ModelAdmin):
 
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
-    list_display = ['role', 'content_preview', 'timestamp']
-    list_filter = ['role', 'timestamp']
+    list_display = ['user', 'role', 'content_preview', 'timestamp']
+    list_filter = ['user', 'role', 'timestamp']
 
     def content_preview(self, obj):
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content

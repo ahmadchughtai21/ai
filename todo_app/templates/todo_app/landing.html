@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Todo - Plan Better</title>
+    <style>
+        :root {
+            --bg: #0b1220;
+            --card: rgba(15, 23, 42, 0.72);
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --border: rgba(148, 163, 184, 0.24);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: radial-gradient(1200px 500px at 15% -10%, #1d4ed8 0%, transparent 60%),
+                        radial-gradient(1200px 500px at 90% 10%, #7c3aed 0%, transparent 55%),
+                        var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+        .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 52px; }
+        .brand { font-weight: 700; letter-spacing: .2px; }
+        .links a {
+            color: var(--text);
+            text-decoration: none;
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        .links a.primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+        }
+        .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 26px; align-items: center; }
+        .hero h1 { font-size: 44px; line-height: 1.08; margin-bottom: 14px; }
+        .hero p { color: var(--muted); font-size: 17px; line-height: 1.6; margin-bottom: 22px; }
+        .cta a {
+            text-decoration: none;
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-right: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .cta .start { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .cta .login { border: 1px solid var(--border); color: var(--text); }
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            backdrop-filter: blur(8px);
+        }
+        .panel h3 { margin-bottom: 12px; }
+        .stat { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); color: var(--muted); }
+        .stat:last-child { border-bottom: none; }
+        .features { margin-top: 52px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .feature {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+        }
+        .feature h4 { margin-bottom: 8px; font-size: 15px; }
+        .feature p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+        @media (max-width: 900px) {
+            .hero { grid-template-columns: 1fr; }
+            .features { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 34px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <div class="brand">✓ AI Todo</div>
+            <div class="links">
+                <a href="{% url 'login' %}">Log in</a>
+                <a href="{% url 'signup' %}" class="primary">Get Started</a>
+            </div>
+        </div>
+
+        <section class="hero">
+            <div>
+                <h1>Organize work and life with a smart todo workspace.</h1>
+                <p>
+                    A clean productivity app with AI-assisted planning, categories, priorities,
+                    recurring tasks, and focused daily views.
+                </p>
+                <div class="cta">
+                    <a href="{% url 'signup' %}" class="start">Create Account</a>
+                    <a href="{% url 'login' %}" class="login">I already have an account</a>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Why teams and students use AI Todo</h3>
+                <div class="stat"><span>Private workspace per user</span><strong>100%</strong></div>
+                <div class="stat"><span>AI-assisted task commands</span><strong>Fast</strong></div>
+                <div class="stat"><span>Smart sections & filters</span><strong>Built-in</strong></div>
+                <div class="stat"><span>Recurring reminders</span><strong>Daily/Weekly</strong></div>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature">
+                <h4>Personal data isolation</h4>
+                <p>Each user sees only their own tasks, categories, tags, and chat context.</p>
+            </div>
+            <div class="feature">
+                <h4>Simple command workflow</h4>
+                <p>Use natural language to create, update, and organize tasks instantly.</p>
+            </div>
+            <div class="feature">
+                <h4>Consistent productivity UI</h4>
+                <p>Keep focus with Inbox, Today, Next 7 Days, and detailed task panes.</p>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

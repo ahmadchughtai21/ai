@@ -11,6 +11,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ai_todo_project.settings')
 django.setup()
 
 from todo_app.models import Category
+from django.contrib.auth import get_user_model
 
 # Default categories with nice colors
 DEFAULT_CATEGORIES = [
@@ -25,20 +26,29 @@ DEFAULT_CATEGORIES = [
 ]
 
 def setup_categories():
-    """Create default categories if they don't exist."""
+    """Create default categories for each user if they don't exist."""
+    User = get_user_model()
+    users = User.objects.all()
+    if not users.exists():
+        print("No users found. Create a user first, then run this script again.")
+        return
+
     created_count = 0
 
-    for cat_data in DEFAULT_CATEGORIES:
-        category, created = Category.objects.get_or_create(
-            name=cat_data['name'],
-            defaults={'color': cat_data['color']}
-        )
+    for user in users:
+        print(f"\nUser: {user.username}")
+        for cat_data in DEFAULT_CATEGORIES:
+            category, created = Category.objects.get_or_create(
+                user=user,
+                name=cat_data['name'],
+                defaults={'color': cat_data['color']}
+            )
 
-        if created:
-            print(f"✓ Created category: {category.name} ({category.color})")
-            created_count += 1
-        else:
-            print(f"- Category already exists: {category.name}")
+            if created:
+                print(f"✓ Created category: {category.name} ({category.color})")
+                created_count += 1
+            else:
+                print(f"- Category already exists: {category.name}")
 
     print(f"\n{'='*50}")
     print(f"Setup complete! Created {created_count} new categories.")

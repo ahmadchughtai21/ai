@@ -67,6 +67,13 @@ class TaskSerializer(serializers.ModelSerializer):
     attachments = AttachmentSerializer(many=True, read_only=True)
     due_time = serializers.SerializerMethodField()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            self.fields['category_id'].queryset = Category.objects.filter(user=request.user)
+            self.fields['tag_ids'].queryset = Tag.objects.filter(user=request.user)
+
     def get_due_time(self, obj):
         """Format due_time in 12-hour format."""
         if obj.due_time:

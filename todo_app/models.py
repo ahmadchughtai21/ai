@@ -1,7 +1,19 @@
 from django.db import models
+from django.conf import settings
 
 class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='todo_tags'
+    )
+    name = models.CharField(max_length=50)
+
+    class Meta:
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'name'], name='uniq_tag_per_user')
+        ]
 
     def __str__(self):
         return self.name
@@ -9,13 +21,21 @@ class Tag(models.Model):
 
 class Category(models.Model):
     """Lists/Categories for organizing tasks (e.g., Work, Personal, Shopping)."""
-    name = models.CharField(max_length=100, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='todo_categories'
+    )
+    name = models.CharField(max_length=100)
     color = models.CharField(max_length=7, default='#3b82f6', help_text='Hex color code')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name_plural = 'Categories'
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'name'], name='uniq_category_per_user')
+        ]
 
     def __str__(self):
         return self.name
@@ -43,6 +63,11 @@ class Task(models.Model):
     ]
 
     # Original fields
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='todo_tasks'
+    )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
@@ -240,6 +265,11 @@ class ChatMessage(models.Model):
         ('model', 'Model'),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='todo_chat_messages'
+    )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)

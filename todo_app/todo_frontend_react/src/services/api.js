@@ -5,10 +5,64 @@ const API_BASE_URL = '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+    return Promise.reject(error);
+  }
+);
+
+const setCsrfHeader = (token) => {
+  if (!token) return;
+  api.defaults.headers.common['X-CSRFToken'] = token;
+};
+
+const getCookie = (name) => {
+  if (typeof document === 'undefined') return null;
+  const cookieValue = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split('=')[1];
+  return cookieValue || null;
+};
+
+api.interceptors.request.use((config) => {
+  const method = (config.method || 'get').toLowerCase();
+  const unsafeMethod = ['post', 'put', 'patch', 'delete'].includes(method);
+  if (unsafeMethod) {
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) {
+      config.headers = config.headers || {};
+      config.headers['X-CSRFToken'] = csrfToken;
+    }
+  }
+  return config;
+});
+
+// Auth
+export const getCsrfToken = async () => {
+  const response = await axios.get('/api/auth/csrf/', { withCredentials: true });
+  const token = response.data?.csrfToken;
+  setCsrfHeader(token);
+  return token;
+};
+export const getAuthStatus = () => api.get('/auth/status/');
+export const signup = (username, password1, password2) =>
+  api.post('/auth/signup/', { username, password1, password2 });
+export const login = (username, password) =>
+  api.post('/auth/login/', { username, password });
+export const logout = () => api.post('/auth/logout/');
 
 // Tasks
 export const getTasks = () => api.get('/tasks/');
