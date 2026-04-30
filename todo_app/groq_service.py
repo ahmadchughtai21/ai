@@ -10,6 +10,51 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 MODEL_NAME = "llama-3.1-8b-instant"
 
 
+def get_current_datetime_context():
+    """
+    Get current date, time, and day for AI reference.
+    Returns a formatted string with current datetime information.
+    """
+    now = timezone.now()
+
+    # Get current date in multiple formats
+    date_str = now.strftime("%Y-%m-%d")  # 2026-01-01
+    full_date = now.strftime("%A, %B %d, %Y")  # Wednesday, January 01, 2026
+    day_of_week = now.strftime("%A")  # Wednesday
+    month_name = now.strftime("%B")  # January
+    day_number = now.strftime("%d")  # 01
+    year = now.strftime("%Y")  # 2026
+
+    # Get current time in 12-hour format
+    time_12h = now.strftime("%I:%M %p")  # 02:30 PM
+    time_24h = now.strftime("%H:%M")  # 14:30
+
+    # Get day type (weekday/weekend)
+    day_type = "weekday" if now.weekday() < 5 else "weekend"
+
+    context = f"""
+**CURRENT DATE AND TIME (USE THIS FOR ALL DATE CALCULATIONS):**
+- Full Date: {full_date}
+- Date (YYYY-MM-DD): {date_str}
+- Day of Week: {day_of_week}
+- Month: {month_name}
+- Day: {day_number}
+- Year: {year}
+- Current Time (12-hour): {time_12h}
+- Current Time (24-hour): {time_24h}
+- Day Type: {day_type}
+
+**CRITICAL DATE CALCULATION RULES:**
+- ALWAYS use {date_str} as TODAY'S DATE for all relative date calculations
+- When user says "today", use {date_str}
+- When user says "tomorrow", use the day after {date_str}
+- When user says "next Monday" or any weekday, calculate from {day_of_week}, {date_str}
+- NEVER use past dates - if a weekday has passed this week, use next week's occurrence
+- When crossing month/year boundaries, ensure the year in YYYY-MM-DD is correct
+- Current year is {year} - use this for all date calculations
+"""
+    return context
+
 
 SYSTEM_INSTRUCTION = """
 You are an AI-powered Task Manager Assistant. Your primary purpose is to help users manage their tasks with advanced features like categories, priorities, due dates, and subtasks.
@@ -629,7 +674,10 @@ AVAILABLE CATEGORIES:
 
 IMPORTANT: When user asks about completed tasks, use the Completed Tasks list above. When they ask about pending/active tasks, use the Pending Tasks list."""
 
-    system_message = SYSTEM_INSTRUCTION + tasks_context
+    # Get current datetime context for accurate date calculations
+    datetime_context = get_current_datetime_context()
+
+    system_message = SYSTEM_INSTRUCTION + datetime_context + tasks_context
 
     # 5. Get last 1 conversation pair for context (last 1 user + last 1 assistant message)
     recent_messages = ChatMessage.objects.order_by('-timestamp')[:2]  # Get last 2 messages
