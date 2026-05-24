@@ -1,6 +1,8 @@
-# AI Todo App
+# 📝 Tack | AI Todo App
 
-AI-powered todo app with a Django REST backend and a React frontend, built around natural-language task management.
+An AI-powered task management application featuring a **Django REST Framework** backend and a **React** frontend. Tack transforms natural-language inputs into organized, actionable schedules instantly.
+
+**🔗 Live Demo:** [tack.ahmadchughtai.me](https://tack.ahmadchughtai.me)
 
 ## Features
 
@@ -155,10 +157,15 @@ The assistant is restricted to task-management operations.
 ## Screenshots
 
 <img width="1326" height="702" alt="1" src="https://github.com/user-attachments/assets/afccaa4e-9693-4e81-aa8d-f250c6f32411" />
+
 <img width="1326" height="702" alt="2" src="https://github.com/user-attachments/assets/50a221d3-a98a-443f-bce0-986651dcdc6d" />
+
 <img width="1326" height="702" alt="3" src="https://github.com/user-attachments/assets/308ab077-5237-44e9-918b-ca5619b9bf24" />
+
 <img width="1326" height="702" alt="4" src="https://github.com/user-attachments/assets/e3f08669-3263-4a69-b87b-dd9e6a8fbd08" />
+
 <img width="1280" height="2186" alt="5" src="https://github.com/user-attachments/assets/fd11adfe-25af-48d9-8da6-4ad7ecf8174d" />
+
 <img width="1326" height="702" alt="6" src="https://github.com/user-attachments/assets/f3412fce-cd10-467e-bad1-cfd708d8a7f4" />
 
 
